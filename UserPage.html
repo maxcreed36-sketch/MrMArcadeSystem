@@ -10,12 +10,12 @@
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        #qr-reader {
+        #qr-reader, #purchase-qr-reader {
             width: 100%;
             max-width: 500px;
             margin: 0 auto;
         }
-        #qr-reader__dashboard_section_csr {
+        #qr-reader__dashboard_section_csr, #purchase-qr-reader__dashboard_section_csr {
             padding: 10px;
         }
         .capitalize-input {
@@ -34,9 +34,6 @@
         .history-container {
             max-height: 300px;
             overflow-y: auto;
-        }
-        .purchase-scanner {
-            margin-top: 20px;
         }
     </style>
 </head>
@@ -196,9 +193,6 @@
         function saveScoreToHistory(scoreData, isPurchase = false) {
             let history = JSON.parse(localStorage.getItem('scoreHistory') || '[]');
             
-            // Clean up the scanned data by removing unwanted characters
-            scoreData = scoreData.replace(/\?/g, '').replace(/^\/+|\/+$/g, '');
-            
             // Check if this exact record already exists
             const exists = history.some(item => item.raw === scoreData);
             if (!exists) {
@@ -210,7 +204,10 @@
                     score = scoreData;
                     date = formatDate(new Date());
                 } else {
-                    // For regular scores, the format is username/score/date
+                    // For regular scores, clean up the scanned data
+                    scoreData = scoreData.replace(/\?/g, '').replace(/^\/+|\/+$/g, '');
+                    
+                    // The format is username/score/date
                     const parts = scoreData.split('/');
                     if (parts.length !== 3) return false;
                     
@@ -335,20 +332,35 @@
                 return;
             }
             
+            if (currentScore <= 0) {
+                alert('You do not have enough points to make a purchase.');
+                return;
+            }
+            
             mainMenu.classList.add('hidden');
             purchaseScanner.classList.remove('hidden');
             
             // Initialize purchase QR scanner
             purchaseHtml5QrCode = new Html5Qrcode("purchase-qr-reader");
             const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                // Clean the scanned data
+                const cleanText = decodedText.replace(/\?/g, '').replace(/^\/+|\/+$/g, '');
+                
                 // Validate that it's a negative number
-                if (!decodedText.startsWith('-')) {
+                if (!cleanText.startsWith('-')) {
                     alert('Invalid purchase QR code. It should start with a minus sign (e.g., -15)');
                     return;
                 }
                 
-                if (saveScoreToHistory(decodedText, true)) {
-                    alert('Purchase recorded successfully! Points deducted.');
+                // Check if user has enough points
+                const pointsToDeduct = Math.abs(parseInt(cleanText));
+                if (pointsToDeduct > currentScore) {
+                    alert(`You only have ${currentScore} points, which is not enough for this purchase.`);
+                    return;
+                }
+                
+                if (saveScoreToHistory(cleanText, true)) {
+                    alert(`Purchase recorded successfully! ${pointsToDeduct} points deducted.`);
                 }
                 purchaseHtml5QrCode.stop().then(() => {
                     purchaseScanner.classList.add('hidden');
