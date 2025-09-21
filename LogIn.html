@@ -3,458 +3,275 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Account System</title>
-    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <title>User Login System</title>
     <style>
         * {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, sans-serif;
         }
-        
         body {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            min-height: 100vh;
+            background-color: #f5f5f5;
+            margin: 0;
             padding: 20px;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            color: #333;
+            min-height: 100vh;
         }
-        
         .container {
-            width: 100%;
-            max-width: 900px;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-            margin: 20px 0;
-        }
-        
-        header {
-            background: #2575fc;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        
-        h1 {
-            font-size: 2.2rem;
-            margin-bottom: 10px;
-        }
-        
-        .description {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        
-        .content {
+            background-color: white;
             padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
         }
-        
-        .form-section {
-            margin-bottom: 30px;
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
         }
-        
-        h2 {
-            color: #2575fc;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #eee;
-        }
-        
         .form-group {
             margin-bottom: 15px;
         }
-        
         label {
             display: block;
             margin-bottom: 5px;
-            font-weight: 600;
+            font-weight: bold;
+            color: #555;
         }
-        
-        input {
+        input[type="text"],
+        input[type="password"] {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
             font-size: 16px;
-            transition: border-color 0.3s;
+            text-transform: uppercase;
         }
-        
-        input:focus {
-            border-color: #2575fc;
+        input[type="text"]:focus,
+        input[type="password"]:focus {
             outline: none;
+            border-color: #4a90e2;
         }
-        
-        .input-note {
-            font-size: 0.85rem;
-            color: #666;
+        .error {
+            color: #d9534f;
+            font-size: 14px;
             margin-top: 5px;
+            display: none;
         }
-        
-        button {
-            background: #2575fc;
+        .btn {
+            background-color: #4a90e2;
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: background 0.3s;
-        }
-        
-        button:hover {
-            background: #1a67e8;
-        }
-        
-        .message {
-            padding: 12px;
-            margin: 15px 0;
-            border-radius: 5px;
-            text-align: center;
-            font-weight: 500;
-        }
-        
-        .success {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .users-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .users-table th, .users-table td {
             padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            margin-top: 10px;
         }
-        
-        .users-table th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #495057;
+        .btn:hover {
+            background-color: #357abD;
         }
-        
-        .users-table tr:nth-child(even) {
-            background-color: #f8f9fa;
+        .switch-form {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
         }
-        
-        .users-table tr:hover {
-            background-color: #e9ecef;
+        .switch-form a {
+            color: #4a90e2;
+            text-decoration: none;
+            cursor: pointer;
         }
-        
-        .current-user {
-            background-color: #d1ecf1 !important;
-        }
-        
-        .instructions {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 30px;
-        }
-        
-        .instructions h3 {
-            color: #2575fc;
-            margin-bottom: 15px;
-        }
-        
-        .instructions ul {
-            padding-left: 20px;
-        }
-        
-        .instructions li {
-            margin-bottom: 8px;
-        }
-        
-        @media (max-width: 600px) {
-            .container {
-                border-radius: 10px;
-            }
-            
-            h1 {
-                font-size: 1.8rem;
-            }
-            
-            .content {
-                padding: 15px;
-            }
-            
-            .users-table {
-                font-size: 14px;
-            }
-            
-            .users-table th, .users-table td {
-                padding: 8px 10px;
-            }
+        .switch-form a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>User Account System</h1>
-            <p class="description">Create an account or login to track your scores</p>
-        </header>
+        <h1 id="form-title">Login</h1>
         
-        <div class="content">
-            <div class="form-section">
-                <h2>Create Account</h2>
-                <div class="form-group">
-                    <label for="new-username">Username (CAPITALS and NUMBERS only)</label>
-                    <input type="text" id="new-username" placeholder="Enter username" oninput="this.value = this.value.toUpperCase()">
-                </div>
-                <div class="form-group">
-                    <label for="new-passcode">Passcode (CAPITALS and NUMBERS only)</label>
-                    <input type="password" id="new-passcode" placeholder="Enter passcode" oninput="this.value = this.value.toUpperCase()">
-                    <p class="input-note">Username and passcode can only contain capital letters A-Z and numbers 0-9</p>
-                </div>
-                <button id="create-account">Create Account</button>
-                <div id="create-message" class="message"></div>
+        <!-- Login Form -->
+        <form id="login-form">
+            <div class="form-group">
+                <label for="login-username">Username</label>
+                <input type="text" id="login-username" required>
+                <div class="error" id="login-username-error">Only capital letters and numbers allowed</div>
             </div>
-            
-            <div class="form-section">
-                <h2>Login</h2>
-                <div class="form-group">
-                    <label for="login-username">Username</label>
-                    <input type="text" id="login-username" placeholder="Enter username" oninput="this.value = this.value.toUpperCase()">
-                </div>
-                <div class="form-group">
-                    <label for="login-passcode">Passcode</label>
-                    <input type="password" id="login-passcode" placeholder="Enter passcode" oninput="this.value = this.value.toUpperCase()">
-                </div>
-                <button id="login">Login</button>
-                <div id="login-message" class="message"></div>
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" required>
+                <div class="error" id="login-password-error">Only capital letters and numbers allowed</div>
             </div>
-            
-            <h2>User List</h2>
-            <div id="user-table-container">
-                <table class="users-table">
-                    <thead>
-                        <tr>
-                            <th>Username</th>
-                            <th>Passcode</th>
-                            <th>Current Score</th>
-                            <th>History</th>
-                        </tr>
-                    </thead>
-                    <tbody id="user-table-body">
-                        <!-- User data will be inserted here -->
-                    </tbody>
-                </table>
+            <button type="submit" class="btn">Login</button>
+        </form>
+        
+        <!-- Register Form -->
+        <form id="register-form" style="display: none;">
+            <div class="form-group">
+                <label for="register-username">Username</label>
+                <input type="text" id="register-username" required>
+                <div class="error" id="register-username-error">Only capital letters and numbers allowed</div>
             </div>
-            
-            <div class="instructions">
-                <h3>How to Use This System</h3>
-                <ul>
-                    <li>Create an account with a username and passcode containing only capital letters and numbers</li>
-                    <li>Login with your credentials to update your scores</li>
-                    <li>Your current score is automatically calculated from your history</li>
-                    <li>All data is stored locally in your browser using SQLite</li>
-                </ul>
+            <div class="form-group">
+                <label for="register-password">Password</label>
+                <input type="password" id="register-password" required>
+                <div class="error" id="register-password-error">Only capital letters and numbers allowed</div>
             </div>
+            <div class="form-group">
+                <label for="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" required>
+                <div class="error" id="confirm-password-error">Passwords do not match</div>
+            </div>
+            <button type="submit" class="btn">Create Account</button>
+        </form>
+        
+        <div class="switch-form">
+            <span id="switch-text">Don't have an account? </span>
+            <a id="switch-link">Register</a>
         </div>
     </div>
 
     <script>
-        // Initialize SQL.js
-        let db = null;
+        // DOM Elements
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const formTitle = document.getElementById('form-title');
+        const switchText = document.getElementById('switch-text');
+        const switchLink = document.getElementById('switch-link');
         
-        // Initialize the database
-        function initDatabase() {
-            // Create an in-memory SQLite database
-            db = new SQL.Database();
-            
-            // Create users table if it doesn't exist
-            db.run(`
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE NOT NULL,
-                    passcode TEXT NOT NULL,
-                    current_score INTEGER DEFAULT 0,
-                    history TEXT DEFAULT ''
-                )
-            `);
-            
-            // Refresh the user table
-            refreshUserTable();
-        }
-        
-        // Validate input (only capital letters and numbers)
-        function isValidInput(input) {
-            return /^[A-Z0-9]*$/.test(input);
-        }
-        
-        // Create a new account
-        document.getElementById('create-account').addEventListener('click', function() {
-            const username = document.getElementById('new-username').value.trim();
-            const passcode = document.getElementById('new-passcode').value.trim();
-            const messageEl = document.getElementById('create-message');
-            
-            // Validate input
-            if (!username || !passcode) {
-                messageEl.textContent = 'Please enter both username and passcode';
-                messageEl.className = 'message error';
-                return;
-            }
-            
-            if (!isValidInput(username) || !isValidInput(passcode)) {
-                messageEl.textContent = 'Username and passcode can only contain capital letters and numbers';
-                messageEl.className = 'message error';
-                return;
-            }
-            
-            try {
-                // Check if username already exists
-                const checkStmt = db.prepare('SELECT id FROM users WHERE username = ?');
-                checkStmt.bind([username]);
-                
-                if (checkStmt.step()) {
-                    messageEl.textContent = 'Username already exists';
-                    messageEl.className = 'message error';
-                    checkStmt.free();
-                    return;
-                }
-                checkStmt.free();
-                
-                // Insert new user
-                const stmt = db.prepare('INSERT INTO users (username, passcode) VALUES (?, ?)');
-                stmt.run([username, passcode]);
-                stmt.free();
-                
-                messageEl.textContent = 'Account created successfully!';
-                messageEl.className = 'message success';
-                
-                // Clear input fields
-                document.getElementById('new-username').value = '';
-                document.getElementById('new-passcode').value = '';
-                
-                // Refresh user table
-                refreshUserTable();
-            } catch (error) {
-                messageEl.textContent = 'Error creating account: ' + error.message;
-                messageEl.className = 'message error';
+        // Toggle between login and register forms
+        switchLink.addEventListener('click', function() {
+            if (loginForm.style.display === 'none') {
+                // Switch to login
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                formTitle.textContent = 'Login';
+                switchText.textContent = "Don't have an account? ";
+                switchLink.textContent = 'Register';
+            } else {
+                // Switch to register
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                formTitle.textContent = 'Register';
+                switchText.textContent = "Already have an account? ";
+                switchLink.textContent = 'Login';
             }
         });
         
-        // Login to account
-        document.getElementById('login').addEventListener('click', function() {
-            const username = document.getElementById('login-username').value.trim();
-            const passcode = document.getElementById('login-passcode').value.trim();
-            const messageEl = document.getElementById('login-message');
-            
-            // Validate input
-            if (!username || !passcode) {
-                messageEl.textContent = 'Please enter both username and passcode';
-                messageEl.className = 'message error';
-                return;
-            }
-            
-            try {
-                // Check if username and passcode match
-                const stmt = db.prepare('SELECT id, username, passcode, current_score, history FROM users WHERE username = ? AND passcode = ?');
-                stmt.bind([username, passcode]);
+        // Input validation for uppercase and numbers only
+        const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                const value = this.value;
+                const regex = /^[A-Z0-9]*$/;
+                const errorElement = document.getElementById(`${this.id}-error`);
                 
-                if (stmt.step()) {
-                    const user = stmt.getAsObject();
-                    
-                    messageEl.textContent = `Welcome back, ${user.username}! Your current score is ${user.current_score}`;
-                    messageEl.className = 'message success';
-                    
-                    // Update the user table to highlight the current user
-                    highlightCurrentUser(user.username);
+                if (!regex.test(value)) {
+                    errorElement.style.display = 'block';
+                    this.value = value.replace(/[^A-Z0-9]/g, '');
                 } else {
-                    messageEl.textContent = 'Invalid username or passcode';
-                    messageEl.className = 'message error';
+                    errorElement.style.display = 'none';
                 }
-                
-                stmt.free();
-            } catch (error) {
-                messageEl.textContent = 'Error logging in: ' + error.message;
-                messageEl.className = 'message error';
+            });
+        });
+        
+        // Confirm password validation
+        const confirmPassword = document.getElementById('confirm-password');
+        confirmPassword.addEventListener('input', function() {
+            const password = document.getElementById('register-password').value;
+            const errorElement = document.getElementById('confirm-password-error');
+            
+            if (this.value !== password) {
+                errorElement.style.display = 'block';
+            } else {
+                errorElement.style.display = 'none';
             }
         });
         
-        // Refresh the user table
-        function refreshUserTable() {
-            try {
-                const tbody = document.getElementById('user-table-body');
-                tbody.innerHTML = '';
-                
-                // Select all users
-                const stmt = db.prepare('SELECT username, passcode, current_score, history FROM users ORDER BY username');
-                
-                while (stmt.step()) {
-                    const user = stmt.getAsObject();
-                    const row = document.createElement('tr');
-                    
-                    row.innerHTML = `
-                        <td>${user.username}</td>
-                        <td>${user.passcode}</td>
-                        <td>${user.current_score}</td>
-                        <td>${user.history || 'No history'}</td>
-                    `;
-                    
-                    tbody.appendChild(row);
-                }
-                
-                stmt.free();
-            } catch (error) {
-                console.error('Error refreshing user table:', error);
-            }
-        }
-        
-        // Highlight the current user in the table
-        function highlightCurrentUser(username) {
-            const rows = document.getElementById('user-table-body').rows;
+        // Login form submission
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
             
-            for (let i = 0; i < rows.length; i++) {
-                if (rows[i].cells[0].textContent === username) {
-                    rows[i].classList.add('current-user');
-                } else {
-                    rows[i].classList.remove('current-user');
-                }
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            
+            // Validate input
+            if (!/^[A-Z0-9]+$/.test(username) || !/^[A-Z0-9]+$/.test(password)) {
+                alert('Username and password must contain only capital letters and numbers');
+                return;
             }
-        }
+            
+            // Check if user exists in the database
+            checkUserExists(username, password, false);
+        });
         
-        // Initialize the database when the page loads
-        window.onload = function() {
-            // Load SQL.js and initialize the database
-            initSQLJs().then(function() {
-                initDatabase();
-            });
-        };
+        // Register form submission
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('register-username').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPasswordValue = document.getElementById('confirm-password').value;
+            
+            // Validate input
+            if (!/^[A-Z0-9]+$/.test(username) || !/^[A-Z0-9]+$/.test(password)) {
+                alert('Username and password must contain only capital letters and numbers');
+                return;
+            }
+            
+            if (password !== confirmPasswordValue) {
+                alert('Passwords do not match');
+                return;
+            }
+            
+            // Check if username is already taken
+            checkUserExists(username, password, true);
+        });
         
-        // Initialize SQL.js
-        function initSQLJs() {
-            return new Promise((resolve, reject) => {
-                // config for SQL.js
-                const config = {
-                    locateFile: filename => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${filename}`
-                };
+        // Function to check if user exists (simulating database check)
+        function checkUserExists(username, password, isRegistering) {
+            // In a real application, this would be an API call to your server
+            // For demonstration, we'll simulate the database check
+            
+            // This is a simulation - in reality you would fetch from your SQLite database
+            console.log(`Checking if user ${username} exists...`);
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                // For demo purposes, let's assume some users already exist
+                const existingUsers = ['USER1', 'USER2', 'ADMIN'];
                 
-                // initialize SQL.js
-                initSqlJs(config).then(function(SQL) {
-                    window.SQL = SQL;
-                    resolve();
-                }).catch(function(e) {
-                    console.error('Error loading SQL.js:', e);
-                    reject(e);
-                });
-            });
+                if (isRegistering) {
+                    // Registration flow
+                    if (existingUsers.includes(username)) {
+                        alert('Username already exists. Please choose a different one.');
+                    } else {
+                        // Add new user to database (simulated)
+                        alert(`Account created successfully for ${username}`);
+                        // Here you would actually save to your SQLite database
+                        console.log(`Would save user: ${username}, pass: ${password} to database`);
+                        
+                        // Redirect to login after successful registration
+                        loginForm.style.display = 'block';
+                        registerForm.style.display = 'none';
+                        formTitle.textContent = 'Login';
+                        switchText.textContent = "Don't have an account? ";
+                        switchLink.textContent = 'Register';
+                    }
+                } else {
+                    // Login flow
+                    if (existingUsers.includes(username) && password === 'PASSWORD') {
+                        // Successful login - redirect to user page
+                        alert(`Login successful! Welcome ${username}`);
+                        window.location.href = 'https://maxcreed36-sketch.github.io/MrMArcadeSystem/UserPage.html';
+                    } else {
+                        alert('Invalid username or password');
+                    }
+                }
+            }, 500);
         }
     </script>
 </body>
