@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Scanner with Optional Username</title>
+    <title>QR Code Scanner with QR Output</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -28,7 +29,7 @@
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             width: 90%;
-            max-width: 600px;
+            max-width: 700px;
             padding: 30px;
             text-align: center;
         }
@@ -187,6 +188,20 @@
             font-family: monospace;
             font-size: 18px;
             word-break: break-all;
+            margin-bottom: 15px;
+        }
+        
+        #output-qr {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        #qrcode {
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         
         .instructions {
@@ -249,8 +264,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>QR Code Scanner with Optional Username</h1>
-        <p class="description">Scan a QR code to capture username or type it manually, then add positive or negative points to generate formatted data.</p>
+        <h1>QR Code Scanner with QR Output</h1>
+        <p class="description">Scan a QR code to capture username or type it manually, then generate formatted data and create a QR code of the output.</p>
         
         <div class="section">
             <div class="section-title">1. Get Username</div>
@@ -293,11 +308,16 @@
         
         <div class="section">
             <div class="section-title">3. Generate Output</div>
-            <button id="generate-button">Generate Formatted Data</button>
+            <button id="generate-button">Generate Formatted Data & QR Code</button>
             
             <div id="output">
                 <div class="section-title">Output</div>
                 <div id="output-text">/Username?/±Score?/DateAndTime</div>
+                
+                <div class="section-title">QR Code Output</div>
+                <div id="output-qr">
+                    <canvas id="qrcode"></canvas>
+                </div>
             </div>
         </div>
         
@@ -308,7 +328,7 @@
                 <li>If scanning, click "Start Camera" and allow camera access</li>
                 <li>Point your camera at a QR code to scan it</li>
                 <li>Adjust points using the + and - buttons</li>
-                <li>Click "Generate Formatted Data" to create the output</li>
+                <li>Click "Generate Formatted Data" to create the output and QR code</li>
             </ol>
         </div>
     </div>
@@ -329,6 +349,7 @@
             const manualModeBtn = document.getElementById('manual-mode-btn');
             const qrSection = document.getElementById('qr-section');
             const manualSection = document.getElementById('manual-section');
+            const qrcodeCanvas = document.getElementById('qrcode');
             
             let stream = null;
             let scanning = false;
@@ -437,7 +458,7 @@
                 scoreInput.value = currentValue - 1;
             });
             
-            // Function to generate the formatted output
+            // Function to generate the formatted output and QR code
             generateButton.addEventListener('click', function() {
                 let username = '';
                 
@@ -471,6 +492,18 @@
                 // Generate the output string
                 const output = `/${username}?/${sign}${score}?/${formattedDateTime}`;
                 outputText.textContent = output;
+                
+                // Generate QR code
+                QRCode.toCanvas(qrcodeCanvas, output, {
+                    width: 200,
+                    margin: 1,
+                    color: {
+                        dark: '#2575fc',
+                        light: '#ffffff'
+                    }
+                }, function(error) {
+                    if (error) console.error(error);
+                });
             });
             
             // Clean up when leaving the page
