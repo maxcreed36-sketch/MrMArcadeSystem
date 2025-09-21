@@ -1,308 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Score Tracker</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script src="https://unpkg.com/feather-icons"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        #qr-reader {
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        #qr-reader__dashboard_section_csr {
-            padding: 10px;
-        }
-        .capitalize-input {
-            text-transform: uppercase;
-        }
-        .history-item {
-            border-bottom: 1px solid #e2e8f0;
-            padding: 8px 0;
-        }
-    </style>
-</head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <!-- Main Menu -->
-        <div id="main-menu" class="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto">
-            <h1 class="text-2xl font-bold text-center mb-6 text-blue-600">Score Tracker</h1>
+// Save score to history
+function saveScoreToHistory(scoreData) {
+    let history = JSON.parse(localStorage.getItem('scoreHistory') || '[]');
+    
+    // Clean up the scanned data by removing unwanted characters
+    scoreData = scoreData.replace(/\?/g, '').replace(/^\/+|\/+$/g, '');
+    
+    // Check if this exact record already exists
+    const exists = history.some(item => item.raw === scoreData);
+    if (!exists) {
+        const parts = scoreData.split('/');
+        if (parts.length === 3) {
+            // Clean up each part
+            const username = parts[0].trim();
+            const score = parts[1].trim();
+            const date = parts[2].trim();
             
-            <div class="mb-6">
-                <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                <input type="text" id="username" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 capitalize-input" 
-                       placeholder="Enter username (letters & numbers)" maxlength="20">
-                <p class="text-xs text-gray-500 mt-1">Only alphanumeric characters allowed</p>
-            </div>
-
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Current Score</label>
-                <div class="text-3xl font-bold text-center py-2" id="current-score">0</div>
-            </div>
-
-            <div class="flex flex-col space-y-4">
-                <button id="play-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center">
-                    <i data-feather="play" class="mr-2"></i> PLAY
-                </button>
-                <button id="record-score-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center">
-                    <i data-feather="plus-circle" class="mr-2"></i> RECORD SCORE
-                </button>
-                <button id="view-history-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center">
-                    <i data-feather="list" class="mr-2"></i> VIEW HISTORY
-                </button>
-            </div>
-        </div>
-
-        <!-- QR Code Display -->
-        <div id="qr-display" class="hidden bg-white rounded-lg shadow-md p-6 max-w-md mx-auto mt-8">
-            <h2 class="text-xl font-bold text-center mb-4">Your QR Code</h2>
-            <div id="qr-code" class="flex justify-center mb-4"></div>
-            <button id="back-to-menu-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
-                Back to Menu
-            </button>
-        </div>
-
-        <!-- QR Scanner -->
-        <div id="qr-scanner" class="hidden bg-white rounded-lg shadow-md p-6 max-w-md mx-auto mt-8">
-            <h2 class="text-xl font-bold text-center mb-4">Scan QR Code</h2>
-            <div id="qr-reader" class="mb-4"></div>
-            <button id="cancel-scan-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
-                Cancel Scan
-            </button>
-        </div>
-
-        <!-- History View -->
-        <div id="history-view" class="hidden bg-white rounded-lg shadow-md p-6 max-w-md mx-auto mt-8">
-            <h2 class="text-xl font-bold text-center mb-4">Score History</h2>
-            <div id="history-list" class="mb-4"></div>
-            <button id="back-from-history-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
-                Back to Menu
-            </button>
-        </div>
-    </div>
-
-    <script>
-        // Initialize feather icons
-        feather.replace();
-
-        // DOM elements
-        const usernameInput = document.getElementById('username');
-        const currentScoreDisplay = document.getElementById('current-score');
-        const playBtn = document.getElementById('play-btn');
-        const recordScoreBtn = document.getElementById('record-score-btn');
-        const viewHistoryBtn = document.getElementById('view-history-btn');
-        const qrDisplay = document.getElementById('qr-display');
-        const qrCodeDiv = document.getElementById('qr-code');
-        const backToMenuBtn = document.getElementById('back-to-menu-btn');
-        const qrScanner = document.getElementById('qr-scanner');
-        const cancelScanBtn = document.getElementById('cancel-scan-btn');
-        const historyView = document.getElementById('history-view');
-        const historyList = document.getElementById('history-list');
-        const backFromHistoryBtn = document.getElementById('back-from-history-btn');
-        const mainMenu = document.getElementById('main-menu');
-
-        // State variables
-        let currentUsername = '';
-        let currentScore = 0;
-        let html5QrCode;
-
-        // Initialize from localStorage
-        function initializeFromStorage() {
-            const savedUsername = localStorage.getItem('username');
-            const savedScore = localStorage.getItem('score');
-            
-            if (savedUsername) {
-                usernameInput.value = savedUsername;
-                currentUsername = savedUsername;
-            }
-            
-            if (savedScore) {
-                currentScore = parseInt(savedScore);
-                currentScoreDisplay.textContent = currentScore;
-            }
-        }
-
-        // Format date
-        function formatDate(date) {
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            
-            let hours = date.getHours();
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const seconds = String(date.getSeconds()).padStart(2, '0');
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            
-            hours = hours % 12;
-            hours = hours ? hours : 12; // the hour '0' should be '12'
-            
-            return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}${ampm}`;
-        }
-
-        // Generate QR code
-        function generateQRCode() {
-            const formattedDate = formatDate(new Date());
-            const qrData = `${currentUsername}/${currentScore}/${formattedDate}`;
-            
-            const qr = qrcode(0, 'L');
-            qr.addData(qrData);
-            qr.make();
-            
-            qrCodeDiv.innerHTML = qr.createImgTag(5);
-        }
-
-        // Validate username
-        function validateUsername(username) {
-            return /^[a-zA-Z0-9]+$/.test(username);
-        }
-
-        // Save score to history
-        function saveScoreToHistory(scoreData) {
-            let history = JSON.parse(localStorage.getItem('scoreHistory') || '[]');
-            
-            // Check if this exact record already exists
-            const exists = history.some(item => item.raw === scoreData);
-            if (!exists) {
-                const parts = scoreData.split('/');
-                if (parts.length === 3 && parts[0] === currentUsername) {
-                    history.unshift({
-                        username: parts[0],
-                        score: parts[1],
-                        date: parts[2],
-                        raw: scoreData
-                    });
-                    
-                    // Update current score
-                    const scoreChange = parseInt(parts[1]);
-                    if (!isNaN(scoreChange)) {
-                        currentScore += scoreChange;
-                        currentScoreDisplay.textContent = currentScore;
-                        localStorage.setItem('score', currentScore.toString());
-                    }
-                    
-                    localStorage.setItem('scoreHistory', JSON.stringify(history));
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // Load history
-        function loadHistory() {
-            const history = JSON.parse(localStorage.getItem('scoreHistory') || '[]');
-            historyList.innerHTML = '';
-            
-            if (history.length === 0) {
-                historyList.innerHTML = '<p class="text-gray-500 text-center py-4">No history yet</p>';
-                return;
-            }
-            
-            history.forEach(item => {
-                const historyItem = document.createElement('div');
-                historyItem.className = 'history-item';
-                historyItem.innerHTML = `
-                    <div class="flex justify-between">
-                        <span class="font-medium">${item.score}</span>
-                        <span class="text-sm text-gray-500">${item.date}</span>
-                    </div>
-                `;
-                historyList.appendChild(historyItem);
-            });
-        }
-
-        // Event listeners
-        usernameInput.addEventListener('input', function(e) {
-            // Force uppercase and remove invalid characters
-            this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-            
-            if (this.value.length > 0 && validateUsername(this.value)) {
-                currentUsername = this.value;
-                localStorage.setItem('username', currentUsername);
-            }
-        });
-
-        playBtn.addEventListener('click', function() {
-            if (!currentUsername || !validateUsername(currentUsername)) {
-                alert('Please enter a valid username (letters and numbers only)');
-                return;
-            }
-            
-            generateQRCode();
-            mainMenu.classList.add('hidden');
-            qrDisplay.classList.remove('hidden');
-        });
-
-        recordScoreBtn.addEventListener('click', function() {
-            if (!currentUsername || !validateUsername(currentUsername)) {
-                alert('Please enter a valid username (letters and numbers only)');
-                return;
-            }
-            
-            mainMenu.classList.add('hidden');
-            qrScanner.classList.remove('hidden');
-            
-            // Initialize QR scanner
-            html5QrCode = new Html5Qrcode("qr-reader");
-            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-                if (saveScoreToHistory(decodedText)) {
-                    alert('Score recorded successfully!');
-                } else {
-                    alert('This score has already been recorded or is invalid.');
-                }
-                html5QrCode.stop().then(() => {
-                    qrScanner.classList.add('hidden');
-                    mainMenu.classList.remove('hidden');
-                }).catch(err => {
-                    console.error("Error stopping scanner", err);
+            // Only process if it's for the current user
+            if (username === currentUsername) {
+                history.unshift({
+                    username: username,
+                    score: score,
+                    date: date,
+                    raw: scoreData
                 });
-            };
-            
-            const config = { fps: 10, qrbox: 250 };
-            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
-        });
-
-        viewHistoryBtn.addEventListener('click', function() {
-            if (!currentUsername || !validateUsername(currentUsername)) {
-                alert('Please enter a valid username (letters and numbers only)');
-                return;
-            }
-            
-            loadHistory();
-            mainMenu.classList.add('hidden');
-            historyView.classList.remove('hidden');
-        });
-
-        backToMenuBtn.addEventListener('click', function() {
-            qrDisplay.classList.add('hidden');
-            mainMenu.classList.remove('hidden');
-        });
-
-        cancelScanBtn.addEventListener('click', function() {
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => {
-                    qrScanner.classList.add('hidden');
-                    mainMenu.classList.remove('hidden');
-                }).catch(err => {
-                    console.error("Error stopping scanner", err);
-                });
+                
+                // Update current score
+                const scoreChange = parseInt(score);
+                if (!isNaN(scoreChange)) {
+                    currentScore += scoreChange;
+                    currentScoreDisplay.textContent = currentScore;
+                    localStorage.setItem('score', currentScore.toString());
+                }
+                
+                localStorage.setItem('scoreHistory', JSON.stringify(history));
+                return true;
             } else {
-                qrScanner.classList.add('hidden');
-                mainMenu.classList.remove('hidden');
+                alert(`This QR code is for ${username}, not ${currentUsername}`);
             }
-        });
-
-        backFromHistoryBtn.addEventListener('click', function() {
-            historyView.classList.add('hidden');
-            mainMenu.classList.remove('hidden');
-        });
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', initializeFromStorage);
-    </script>
-</body>
-</html>
+        }
+    }
+    return false;
+}
