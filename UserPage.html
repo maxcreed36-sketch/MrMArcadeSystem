@@ -39,11 +39,14 @@
             font-weight: bold;
             color: #3b82f6;
         }
-        .change-username-btn {
-            background-color: #f59e0b;
-        }
-        .change-username-btn:hover {
-            background-color: #d97706;
+        .warning-message {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+            display: none;
         }
     </style>
 </head>
@@ -61,6 +64,9 @@
                 <input type="text" id="username" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 capitalize-input" 
                        placeholder="Enter username (letters & numbers)" maxlength="20">
                 <p class="text-xs text-gray-500 mt-1">Only alphanumeric characters allowed</p>
+                <div id="username-warning" class="warning-message text-sm">
+                    Changing your username will delete all your current scores and history. Press Enter to confirm.
+                </div>
             </div>
 
             <div class="mb-6">
@@ -77,9 +83,6 @@
                 </button>
                 <button id="view-history-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center">
                     <i data-feather="list" class="mr-2"></i> VIEW HISTORY
-                </button>
-                <button id="change-username-btn" class="change-username-btn hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center">
-                    <i data-feather="user-x" class="mr-2"></i> CHANGE USERNAME
                 </button>
             </div>
         </div>
@@ -110,22 +113,6 @@
                 Back to Menu
             </button>
         </div>
-
-        <!-- Change Username Confirmation Modal -->
-        <div id="change-username-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-lg shadow-md p-6 max-w-md w-full">
-                <h2 class="text-xl font-bold text-center mb-4 text-red-600">Change Username</h2>
-                <p class="text-center mb-6">Changing your username will delete all your current scores and history. Are you sure you want to continue?</p>
-                <div class="flex space-x-4">
-                    <button id="confirm-change-btn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
-                        Yes, Change
-                    </button>
-                    <button id="cancel-change-btn" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
-                        Cancel
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -136,10 +123,10 @@
         const usernameInput = document.getElementById('username');
         const currentScoreDisplay = document.getElementById('current-score');
         const currentUsernameDisplay = document.getElementById('current-username-display');
+        const usernameWarning = document.getElementById('username-warning');
         const playBtn = document.getElementById('play-btn');
         const recordScoreBtn = document.getElementById('record-score-btn');
         const viewHistoryBtn = document.getElementById('view-history-btn');
-        const changeUsernameBtn = document.getElementById('change-username-btn');
         const qrDisplay = document.getElementById('qr-display');
         const qrCodeDiv = document.getElementById('qr-code');
         const backToMenuBtn = document.getElementById('back-to-menu-btn');
@@ -149,14 +136,12 @@
         const historyList = document.getElementById('history-list');
         const backFromHistoryBtn = document.getElementById('back-from-history-btn');
         const mainMenu = document.getElementById('main-menu');
-        const changeUsernameModal = document.getElementById('change-username-modal');
-        const confirmChangeBtn = document.getElementById('confirm-change-btn');
-        const cancelChangeBtn = document.getElementById('cancel-change-btn');
 
         // State variables
         let currentUsername = '';
         let currentScore = 0;
         let html5QrCode;
+        let usernameChangePending = false;
 
         // Initialize from localStorage
         function initializeFromStorage() {
@@ -290,7 +275,6 @@
             localStorage.removeItem('scoreHistory');
             currentScore = 0;
             currentScoreDisplay.textContent = currentScore;
-            usernameInput.value = '';
             currentUsername = '';
             currentUsernameDisplay.textContent = '';
         }
@@ -299,15 +283,49 @@
         usernameInput.addEventListener('input', function(e) {
             // Force uppercase and remove invalid characters
             this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            
+            // Show warning if changing from existing username
+            if (currentUsername && this.value !== currentUsername) {
+                usernameWarning.style.display = 'block';
+                usernameChangePending = true;
+            } else {
+                usernameWarning.style.display = 'none';
+                usernameChangePending = false;
+            }
         });
 
-        usernameInput.addEventListener('change', function(e) {
-            if (this.value.length > 0 && validateUsername(this.value)) {
-                // Only update if the username has actually changed
-                if (this.value !== currentUsername) {
-                    // Show confirmation modal
-                    changeUsernameModal.classList.remove('hidden');
+        usernameInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                
+                const newUsername = this.value.trim();
+                
+                if (newUsername.length > 0 && validateUsername(newUsername)) {
+                    if (usernameChangePending && newUsername !== currentUsername) {
+                        // Clear all data if username is being changed
+                        clearUserData();
+                    }
+                    
+                    currentUsername = newUsername;
+                    currentUsernameDisplay.textContent = newUsername;
+                    localStorage.setItem('username', newUsername);
+                    
+                    usernameWarning.style.display = 'none';
+                    usernameChangePending = false;
+                    
+                    if (usernameChangePending) {
+                        alert('Username changed successfully. All previous data has been cleared.');
+                    }
                 }
+            }
+        });
+
+        usernameInput.addEventListener('blur', function() {
+            // Revert to current username if change wasn't confirmed
+            if (usernameChangePending) {
+                this.value = currentUsername;
+                usernameWarning.style.display = 'none';
+                usernameChangePending = false;
             }
         });
 
@@ -358,28 +376,6 @@
             loadHistory();
             mainMenu.classList.add('hidden');
             historyView.classList.remove('hidden');
-        });
-
-        changeUsernameBtn.addEventListener('click', function() {
-            changeUsernameModal.classList.remove('hidden');
-        });
-
-        confirmChangeBtn.addEventListener('click', function() {
-            const newUsername = usernameInput.value;
-            if (newUsername && validateUsername(newUsername)) {
-                clearUserData();
-                currentUsername = newUsername;
-                currentUsernameDisplay.textContent = newUsername;
-                localStorage.setItem('username', newUsername);
-                alert('Username changed successfully. All previous data has been cleared.');
-            }
-            changeUsernameModal.classList.add('hidden');
-        });
-
-        cancelChangeBtn.addEventListener('click', function() {
-            // Revert to the current username
-            usernameInput.value = currentUsername;
-            changeUsernameModal.classList.add('hidden');
         });
 
         backToMenuBtn.addEventListener('click', function() {
