@@ -25,6 +25,19 @@
             border-bottom: 1px solid #e2e8f0;
             padding: 8px 0;
         }
+        .score-positive {
+            color: #10b981;
+        }
+        .score-negative {
+            color: #ef4444;
+        }
+        .history-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .purchase-scanner {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -52,6 +65,9 @@
                 <button id="record-score-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center">
                     <i data-feather="plus-circle" class="mr-2"></i> RECORD SCORE
                 </button>
+                <button id="buy-points-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center">
+                    <i data-feather="shopping-cart" class="mr-2"></i> BUY USING POINTS
+                </button>
                 <button id="view-history-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center">
                     <i data-feather="list" class="mr-2"></i> VIEW HISTORY
                 </button>
@@ -67,11 +83,21 @@
             </button>
         </div>
 
-        <!-- QR Scanner -->
+        <!-- QR Scanner for Scores -->
         <div id="qr-scanner" class="hidden bg-white rounded-lg shadow-md p-6 max-w-md mx-auto mt-8">
-            <h2 class="text-xl font-bold text-center mb-4">Scan QR Code</h2>
+            <h2 class="text-xl font-bold text-center mb-4">Scan Score QR Code</h2>
             <div id="qr-reader" class="mb-4"></div>
             <button id="cancel-scan-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
+                Cancel Scan
+            </button>
+        </div>
+
+        <!-- QR Scanner for Purchases -->
+        <div id="purchase-scanner" class="hidden bg-white rounded-lg shadow-md p-6 max-w-md mx-auto mt-8">
+            <h2 class="text-xl font-bold text-center mb-4">Scan Purchase QR Code</h2>
+            <p class="text-sm text-gray-600 text-center mb-4">Scan a QR code with format: -number (e.g., -15)</p>
+            <div id="purchase-qr-reader" class="mb-4"></div>
+            <button id="cancel-purchase-scan-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
                 Cancel Scan
             </button>
         </div>
@@ -79,7 +105,7 @@
         <!-- History View -->
         <div id="history-view" class="hidden bg-white rounded-lg shadow-md p-6 max-w-md mx-auto mt-8">
             <h2 class="text-xl font-bold text-center mb-4">Score History</h2>
-            <div id="history-list" class="mb-4"></div>
+            <div id="history-list" class="mb-4 history-container"></div>
             <button id="back-from-history-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
                 Back to Menu
             </button>
@@ -95,12 +121,15 @@
         const currentScoreDisplay = document.getElementById('current-score');
         const playBtn = document.getElementById('play-btn');
         const recordScoreBtn = document.getElementById('record-score-btn');
+        const buyPointsBtn = document.getElementById('buy-points-btn');
         const viewHistoryBtn = document.getElementById('view-history-btn');
         const qrDisplay = document.getElementById('qr-display');
         const qrCodeDiv = document.getElementById('qr-code');
         const backToMenuBtn = document.getElementById('back-to-menu-btn');
         const qrScanner = document.getElementById('qr-scanner');
+        const purchaseScanner = document.getElementById('purchase-scanner');
         const cancelScanBtn = document.getElementById('cancel-scan-btn');
+        const cancelPurchaseScanBtn = document.getElementById('cancel-purchase-scan-btn');
         const historyView = document.getElementById('history-view');
         const historyList = document.getElementById('history-list');
         const backFromHistoryBtn = document.getElementById('back-from-history-btn');
@@ -110,6 +139,7 @@
         let currentUsername = '';
         let currentScore = 0;
         let html5QrCode;
+        let purchaseHtml5QrCode;
 
         // Initialize from localStorage
         function initializeFromStorage() {
@@ -147,6 +177,7 @@
         // Generate QR code
         function generateQRCode() {
             const formattedDate = formatDate(new Date());
+            // Clean format without extra symbols
             const qrData = `${currentUsername}/${currentScore}/${formattedDate}`;
             
             const qr = qrcode(0, 'L');
@@ -162,23 +193,44 @@
         }
 
         // Save score to history
-        function saveScoreToHistory(scoreData) {
+        function saveScoreToHistory(scoreData, isPurchase = false) {
             let history = JSON.parse(localStorage.getItem('scoreHistory') || '[]');
+            
+            // Clean up the scanned data by removing unwanted characters
+            scoreData = scoreData.replace(/\?/g, '').replace(/^\/+|\/+$/g, '');
             
             // Check if this exact record already exists
             const exists = history.some(item => item.raw === scoreData);
             if (!exists) {
-                const parts = scoreData.split('/');
-                if (parts.length === 3 && parts[0] === currentUsername) {
+                let username, score, date;
+                
+                if (isPurchase) {
+                    // For purchases, the format is just a number (e.g., -15)
+                    username = currentUsername;
+                    score = scoreData;
+                    date = formatDate(new Date());
+                } else {
+                    // For regular scores, the format is username/score/date
+                    const parts = scoreData.split('/');
+                    if (parts.length !== 3) return false;
+                    
+                    username = parts[0].trim();
+                    score = parts[1].trim();
+                    date = parts[2].trim();
+                }
+                
+                // Only process if it's for the current user
+                if (username === currentUsername) {
                     history.unshift({
-                        username: parts[0],
-                        score: parts[1],
-                        date: parts[2],
-                        raw: scoreData
+                        username: username,
+                        score: score,
+                        date: date,
+                        raw: scoreData,
+                        type: isPurchase ? 'purchase' : 'score'
                     });
                     
                     // Update current score
-                    const scoreChange = parseInt(parts[1]);
+                    const scoreChange = parseInt(score);
                     if (!isNaN(scoreChange)) {
                         currentScore += scoreChange;
                         currentScoreDisplay.textContent = currentScore;
@@ -187,7 +239,11 @@
                     
                     localStorage.setItem('scoreHistory', JSON.stringify(history));
                     return true;
+                } else {
+                    alert(`This QR code is for ${username}, not ${currentUsername}`);
                 }
+            } else {
+                alert('This transaction has already been recorded.');
             }
             return false;
         }
@@ -205,14 +261,23 @@
             history.forEach(item => {
                 const historyItem = document.createElement('div');
                 historyItem.className = 'history-item';
+                
+                // Parse the score value - handle cases where it might already have a + or -
+                let scoreValue = item.score;
+                const scoreClass = scoreValue.startsWith('-') ? 'score-negative' : 'score-positive';
+                const icon = item.type === 'purchase' ? '<i data-feather="shopping-cart" class="w-4 h-4 mr-1"></i>' : '<i data-feather="activity" class="w-4 h-4 mr-1"></i>';
+                
                 historyItem.innerHTML = `
-                    <div class="flex justify-between">
-                        <span class="font-medium">${item.score}</span>
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium ${scoreClass}">${icon}${scoreValue}</span>
                         <span class="text-sm text-gray-500">${item.date}</span>
                     </div>
                 `;
                 historyList.appendChild(historyItem);
             });
+            
+            // Refresh icons
+            feather.replace();
         }
 
         // Event listeners
@@ -251,8 +316,6 @@
             const qrCodeSuccessCallback = (decodedText, decodedResult) => {
                 if (saveScoreToHistory(decodedText)) {
                     alert('Score recorded successfully!');
-                } else {
-                    alert('This score has already been recorded or is invalid.');
                 }
                 html5QrCode.stop().then(() => {
                     qrScanner.classList.add('hidden');
@@ -264,6 +327,39 @@
             
             const config = { fps: 10, qrbox: 250 };
             html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
+        });
+
+        buyPointsBtn.addEventListener('click', function() {
+            if (!currentUsername || !validateUsername(currentUsername)) {
+                alert('Please enter a valid username (letters and numbers only)');
+                return;
+            }
+            
+            mainMenu.classList.add('hidden');
+            purchaseScanner.classList.remove('hidden');
+            
+            // Initialize purchase QR scanner
+            purchaseHtml5QrCode = new Html5Qrcode("purchase-qr-reader");
+            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                // Validate that it's a negative number
+                if (!decodedText.startsWith('-')) {
+                    alert('Invalid purchase QR code. It should start with a minus sign (e.g., -15)');
+                    return;
+                }
+                
+                if (saveScoreToHistory(decodedText, true)) {
+                    alert('Purchase recorded successfully! Points deducted.');
+                }
+                purchaseHtml5QrCode.stop().then(() => {
+                    purchaseScanner.classList.add('hidden');
+                    mainMenu.classList.remove('hidden');
+                }).catch(err => {
+                    console.error("Error stopping scanner", err);
+                });
+            };
+            
+            const config = { fps: 10, qrbox: 250 };
+            purchaseHtml5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
         });
 
         viewHistoryBtn.addEventListener('click', function() {
@@ -292,6 +388,20 @@
                 });
             } else {
                 qrScanner.classList.add('hidden');
+                mainMenu.classList.remove('hidden');
+            }
+        });
+
+        cancelPurchaseScanBtn.addEventListener('click', function() {
+            if (purchaseHtml5QrCode && purchaseHtml5QrCode.isScanning) {
+                purchaseHtml5QrCode.stop().then(() => {
+                    purchaseScanner.classList.add('hidden');
+                    mainMenu.classList.remove('hidden');
+                }).catch(err => {
+                    console.error("Error stopping scanner", err);
+                });
+            } else {
+                purchaseScanner.classList.add('hidden');
                 mainMenu.classList.remove('hidden');
             }
         });

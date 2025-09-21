@@ -3,265 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MrM Arcade System - Login</title>
+    <title>Number QR Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
         .container {
             background-color: white;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        h1 {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+            padding: 30px;
             text-align: center;
+        }
+        
+        h1 {
             color: #333;
+            margin-bottom: 20px;
+            font-weight: 600;
         }
-        .form-group {
-            margin-bottom: 15px;
+        
+        .description {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.5;
         }
-        label {
-            display: block;
-            margin-bottom: 5px;
+        
+        .input-group {
+            margin-bottom: 25px;
         }
-        input[type="text"],
-        input[type="password"] {
+        
+        input {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
         }
+        
+        input:focus {
+            border-color: #6a11cb;
+            outline: none;
+        }
+        
         button {
-            width: 100%;
-            padding: 10px;
-            background-color: #4CAF50;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
             color: white;
             border: none;
-            border-radius: 4px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 16px;
             cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
         }
+        
         button:hover {
-            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
-        .toggle-form {
-            text-align: center;
-            margin-top: 15px;
+        
+        button:active {
+            transform: translateY(0);
         }
-        .toggle-form a {
-            color: #0066cc;
-            text-decoration: none;
-            cursor: pointer;
+        
+        .qr-container {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+            display: none;
         }
-        .message {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-            text-align: center;
+        
+        #qrCode {
+            margin: 0 auto;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            display: inline-block;
         }
-        .error {
-            background-color: #ffebee;
-            color: #c62828;
-        }
-        .success {
-            background-color: #e8f5e9;
-            color: #2e7d32;
+        
+        .footer {
+            margin-top: 25px;
+            color: #888;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>MrM Arcade System</h1>
+        <h1>Number QR Generator</h1>
+        <p class="description">Enter any number below to generate a QR code that will display as "-Number" followed by your input.</p>
         
-        <!-- Login Form -->
-        <div id="login-form">
-            <h2>Login</h2>
-            <div id="login-message" class="message" style="display: none;"></div>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="login-username">Username:</label>
-                    <input type="text" id="login-username" name="username" required pattern="[A-Z0-9]+" title="Only capital letters and numbers are allowed">
-                </div>
-                <div class="form-group">
-                    <label for="login-password">Password:</label>
-                    <input type="password" id="login-password" name="password" required pattern="[A-Z0-9]+" title="Only capital letters and numbers are allowed">
-                </div>
-                <button type="submit">Login</button>
-            </form>
-            <div class="toggle-form">
-                Don't have an account? <a id="show-register">Register</a>
-            </div>
+        <div class="input-group">
+            <input type="number" id="numberInput" placeholder="Enter a number..." min="0">
         </div>
         
-        <!-- Registration Form -->
-        <div id="register-form" style="display: none;">
-            <h2>Register</h2>
-            <div id="register-message" class="message" style="display: none;"></div>
-            <form id="registerForm">
-                <div class="form-group">
-                    <label for="register-username">Username:</label>
-                    <input type="text" id="register-username" name="username" required pattern="[A-Z0-9]+" title="Only capital letters and numbers are allowed">
-                </div>
-                <div class="form-group">
-                    <label for="register-password">Password:</label>
-                    <input type="password" id="register-password" name="password" required pattern="[A-Z0-9]+" title="Only capital letters and numbers are allowed">
-                </div>
-                <div class="form-group">
-                    <label for="confirm-password">Confirm Password:</label>
-                    <input type="password" id="confirm-password" name="confirm-password" required pattern="[A-Z0-9]+" title="Only capital letters and numbers are allowed">
-                </div>
-                <button type="submit">Register</button>
-            </form>
-            <div class="toggle-form">
-                Already have an account? <a id="show-login">Login</a>
-            </div>
+        <button onclick="generateQR()">Generate QR Code</button>
+        
+        <div class="qr-container" id="qrContainer">
+            <canvas id="qrCode"></canvas>
         </div>
+        
+        <p class="footer">Scan the QR code to see your number with the "-Number" prefix</p>
     </div>
 
     <script>
-        // Toggle between login and register forms
-        document.getElementById('show-register').addEventListener('click', function() {
-            document.getElementById('login-form').style.display = 'none';
-            document.getElementById('register-form').style.display = 'block';
-        });
+        function generateQR() {
+            const numberInput = document.getElementById('numberInput').value;
+            
+            if (!numberInput) {
+                alert("Please enter a number first!");
+                return;
+            }
+            
+            const qrText = "-Number" + numberInput;
+            const canvas = document.getElementById('qrCode');
+            const qrContainer = document.getElementById('qrContainer');
+            
+            // Clear previous QR code
+            canvas.width = 250;
+            canvas.height = 250;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Generate new QR code
+            QRCode.toCanvas(canvas, qrText, {
+                width: 200,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            }, function(error) {
+                if (error) {
+                    console.error(error);
+                    alert("An error occurred while generating the QR code.");
+                } else {
+                    qrContainer.style.display = 'block';
+                }
+            });
+        }
         
-        document.getElementById('show-login').addEventListener('click', function() {
-            document.getElementById('register-form').style.display = 'none';
-            document.getElementById('login-form').style.display = 'block';
-        });
-
-        // Handle login form submission
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const username = document.getElementById('login-username').value.toUpperCase();
-            const password = document.getElementById('login-password').value.toUpperCase();
-            const messageDiv = document.getElementById('login-message');
-            
-            // Validate input (only capital letters and numbers)
-            const validChars = /^[A-Z0-9]+$/;
-            if (!validChars.test(username) || !validChars.test(password)) {
-                showMessage(messageDiv, 'error', 'Username and password can only contain capital letters and numbers.');
-                return;
+        // Allow generating QR code by pressing Enter
+        document.getElementById('numberInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateQR();
             }
-            
-            // Send login request to server
-            loginUser(username, password);
         });
-
-        // Handle register form submission
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const username = document.getElementById('register-username').value.toUpperCase();
-            const password = document.getElementById('register-password').value.toUpperCase();
-            const confirmPassword = document.getElementById('confirm-password').value.toUpperCase();
-            const messageDiv = document.getElementById('register-message');
-            
-            // Validate input (only capital letters and numbers)
-            const validChars = /^[A-Z0-9]+$/;
-            if (!validChars.test(username) || !validChars.test(password)) {
-                showMessage(messageDiv, 'error', 'Username and password can only contain capital letters and numbers.');
-                return;
-            }
-            
-            // Check if passwords match
-            if (password !== confirmPassword) {
-                showMessage(messageDiv, 'error', 'Passwords do not match.');
-                return;
-            }
-            
-            // Send registration request to server
-            registerUser(username, password);
-        });
-
-        // Function to display messages
-        function showMessage(element, type, message) {
-            element.textContent = message;
-            element.className = 'message ' + type;
-            element.style.display = 'block';
-            
-            // Auto-hide message after 5 seconds
-            setTimeout(() => {
-                element.style.display = 'none';
-            }, 5000);
-        }
-
-        // Function to login user
-        function loginUser(username, password) {
-            const messageDiv = document.getElementById('login-message');
-            
-            // Create a PHP proxy request since we can't connect directly to MySQL from JavaScript
-            fetch('https://your-php-proxy-url.com/login.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'login',
-                    username: username,
-                    password: password
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage(messageDiv, 'success', 'Login successful! Redirecting...');
-                    // Store user data in localStorage or sessionStorage
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    // Redirect to user page
-                    setTimeout(() => {
-                        window.location.href = 'https://maxcreed36-sketch.github.io/MrMArcadeSystem/UserPage.html';
-                    }, 1000);
-                } else {
-                    showMessage(messageDiv, 'error', data.message || 'Login failed.');
-                }
-            })
-            .catch(error => {
-                showMessage(messageDiv, 'error', 'An error occurred. Please try again later.');
-                console.error('Error:', error);
-            });
-        }
-
-        // Function to register user
-        function registerUser(username, password) {
-            const messageDiv = document.getElementById('register-message');
-            
-            // Create a PHP proxy request
-            fetch('https://your-php-proxy-url.com/register.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'register',
-                    username: username,
-                    password: password
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage(messageDiv, 'success', 'Registration successful! You can now login.');
-                    // Switch to login form
-                    document.getElementById('register-form').style.display = 'none';
-                    document.getElementById('login-form').style.display = 'block';
-                    // Pre-fill the login form
-                    document.getElementById('login-username').value = username;
-                } else {
-                    showMessage(messageDiv, 'error', data.message || 'Registration failed.');
-                }
-            })
-            .catch(error => {
-                showMessage(messageDiv, 'error', 'An error occurred. Please try again later.');
-                console.error('Error:', error);
-            });
-        }
     </script>
 </body>
 </html>
