@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Login System</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 350px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            text-transform: uppercase;
+        }
+        input[type="text"]::placeholder,
+        input[type="password"]::placeholder {
+            text-transform: none;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #357ae8;
+        }
+        .switch-form {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .switch-form a {
+            color: #4285f4;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Login Form -->
+        <div id="loginForm">
+            <h2>Login</h2>
+            <div id="loginMessage" class="message" style="display: none;"></div>
+            <div class="form-group">
+                <label for="loginUsername">Username</label>
+                <input type="text" id="loginUsername" placeholder="Enter your username" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')">
+            </div>
+            <div class="form-group">
+                <label for="loginPasscode">Passcode</label>
+                <input type="password" id="loginPasscode" placeholder="Enter your passcode" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')">
+            </div>
+            <button onclick="login()">Login</button>
+            <div class="switch-form">
+                Don't have an account? <a onclick="showSignupForm()">Sign up</a>
+            </div>
+        </div>
+
+        <!-- Signup Form -->
+        <div id="signupForm" style="display: none;">
+            <h2>Create Account</h2>
+            <div id="signupMessage" class="message" style="display: none;"></div>
+            <div class="form-group">
+                <label for="signupUsername">Username</label>
+                <input type="text" id="signupUsername" placeholder="Capital letters and numbers only" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')">
+            </div>
+            <div class="form-group">
+                <label for="signupPasscode">Passcode</label>
+                <input type="password" id="signupPasscode" placeholder="Capital letters and numbers only" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')">
+            </div>
+            <div class="form-group">
+                <label for="confirmPasscode">Confirm Passcode</label>
+                <input type="password" id="confirmPasscode" placeholder="Confirm your passcode" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')">
+            </div>
+            <button onclick="signup()">Create Account</button>
+            <div class="switch-form">
+                Already have an account? <a onclick="showLoginForm()">Login</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Show/hide forms
+        function showSignupForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+            document.getElementById('signupMessage').style.display = 'none';
+        }
+
+        function showLoginForm() {
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('loginMessage').style.display = 'none';
+        }
+
+        // Display message
+        function displayMessage(elementId, message, type) {
+            const messageElement = document.getElementById(elementId);
+            messageElement.textContent = message;
+            messageElement.className = `message ${type}`;
+            messageElement.style.display = 'block';
+        }
+
+        // Check if account exists
+        function accountExists(username) {
+            // In a real implementation, this would check against a database
+            // For this demo, we'll use localStorage to simulate a database
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            return users.hasOwnProperty(username);
+        }
+
+        // Create account
+        function signup() {
+            const username = document.getElementById('signupUsername').value;
+            const passcode = document.getElementById('signupPasscode').value;
+            const confirmPasscode = document.getElementById('confirmPasscode').value;
+
+            // Validation
+            if (!username || !passcode || !confirmPasscode) {
+                displayMessage('signupMessage', 'Please fill in all fields', 'error');
+                return;
+            }
+
+            if (passcode !== confirmPasscode) {
+                displayMessage('signupMessage', 'Passcodes do not match', 'error');
+                return;
+            }
+
+            if (username.length < 4) {
+                displayMessage('signupMessage', 'Username must be at least 4 characters', 'error');
+                return;
+            }
+
+            if (passcode.length < 6) {
+                displayMessage('signupMessage', 'Passcode must be at least 6 characters', 'error');
+                return;
+            }
+
+            // Check if account already exists
+            if (accountExists(username)) {
+                displayMessage('signupMessage', 'Username already exists', 'error');
+                return;
+            }
+
+            // Create account (in localStorage for this demo)
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            users[username] = {
+                passcode: passcode,
+                current_score: 0,
+                history: ''
+            };
+            localStorage.setItem('users', JSON.stringify(users));
+
+            displayMessage('signupMessage', 'Account created successfully!', 'success');
+            
+            // Clear form
+            document.getElementById('signupUsername').value = '';
+            document.getElementById('signupPasscode').value = '';
+            document.getElementById('confirmPasscode').value = '';
+            
+            // Switch to login form after a delay
+            setTimeout(() => {
+                showLoginForm();
+            }, 1500);
+        }
+
+        // Login
+        function login() {
+            const username = document.getElementById('loginUsername').value;
+            const passcode = document.getElementById('loginPasscode').value;
+
+            // Validation
+            if (!username || !passcode) {
+                displayMessage('loginMessage', 'Please enter username and passcode', 'error');
+                return;
+            }
+
+            // Check if account exists
+            if (!accountExists(username)) {
+                displayMessage('loginMessage', 'Account does not exist', 'error');
+                return;
+            }
+
+            // Verify passcode
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            if (users[username].passcode !== passcode) {
+                displayMessage('loginMessage', 'Incorrect passcode', 'error');
+                return;
+            }
+
+            // Successful login - redirect to user page
+            displayMessage('loginMessage', 'Login successful! Redirecting...', 'success');
+            
+            // In a real implementation, you might set a session or token here
+            localStorage.setItem('currentUser', username);
+            
+            // Redirect to user page
+            setTimeout(() => {
+                window.location.href = 'https://maxcreed36-sketch.github.io/MrMArcadeSystem/UserPage.html';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
