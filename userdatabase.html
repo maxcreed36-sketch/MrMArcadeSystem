@@ -3,423 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQLite User Database</title>
-    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <title>QR Code Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        body {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            color: #333;
-            min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .container {
-            max-width: 1000px;
+        .scanner-container {
+            position: relative;
             width: 100%;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            margin: 0 auto;
             overflow: hidden;
-            margin: 20px 0;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
-        header {
-            background: #2575fc;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        h1 {
-            font-size: 2.2rem;
-            margin-bottom: 10px;
-        }
-        .description {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        .content {
-            padding: 25px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-        }
-        @media (max-width: 768px) {
-            .content {
-                grid-template-columns: 1fr;
-            }
-        }
-        .panel {
-            background: #f9f9f9;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        h2 {
-            color: #2575fc;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #eee;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-        input, select {
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.1) 100%);
+            z-index: 1;
+            pointer-events: none;
         }
-        button {
-            background: #2575fc;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: background 0.3s;
+        .scanner-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 70%;
+            border: 3px solid rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            box-shadow: 0 0 0 10000px rgba(0, 0, 0, 0.5);
+            z-index: 2;
+            pointer-events: none;
+        }
+        .scanner-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            margin-top: 10px;
+            height: 4px;
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0), rgba(59, 130, 246, 0.8), rgba(59, 130, 246, 0));
+            animation: scan 2s infinite linear;
+            z-index: 3;
         }
-        button:hover {
-            background: #1c64e0;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #2575fc;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        tr:hover {
-            background-color: #e9f1ff;
-        }
-        .status {
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 5px;
-            text-align: center;
-            font-weight: 500;
-        }
-        .success {
-            background: #d4edda;
-            color: #155724;
-        }
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        .actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .actions button {
-            flex: 1;
-        }
-        .secondary {
-            background: #6c757d;
-        }
-        .secondary:hover {
-            background: #5a6268;
-        }
-        .score-display {
-            font-size: 2rem;
-            text-align: center;
-            margin: 15px 0;
-            color: #2575fc;
-            font-weight: bold;
-        }
-        .history-list {
-            list-style-type: none;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 10px;
-        }
-        .history-list li {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-        }
-        .history-list li:last-child {
-            border-bottom: none;
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>SQLite User Database</h1>
-            <p class="description">Manage user accounts with scores and history - All data stored in your browser</p>
-        </header>
-
-        <div class="content">
-            <div class="panel">
-                <h2>User Management</h2>
-                <div class="form-group">
-                    <label for="username">Username:</label>
-                    <input type="text" id="username" placeholder="Enter username">
-                </div>
-                <div class="form-group">
-                    <label for="passcode">Passcode:</label>
-                    <input type="password" id="passcode" placeholder="Enter passcode">
-                </div>
-                <div class="form-group">
-                    <label for="score">Current Score:</label>
-                    <input type="number" id="score" placeholder="Enter score" value="0">
-                </div>
-                <div class="form-group">
-                    <label for="history">History (comma separated):</label>
-                    <input type="text" id="history" placeholder="E.g. 100,85,92">
-                </div>
-                <div class="actions">
-                    <button id="addUser">Add User</button>
-                    <button id="updateUser" class="secondary">Update User</button>
-                </div>
-                
-                <div id="status" class="status"></div>
-            </div>
-
-            <div class="panel">
-                <h2>Database Operations</h2>
-                <div class="actions">
-                    <button id="viewUsers">View All Users</button>
-                    <button id="findUser" class="secondary">Find User</button>
-                    <button id="deleteUser" class="secondary">Delete User</button>
-                </div>
-                
-                <div class="form-group">
-                    <label for="searchUsername">Search Username:</label>
-                    <input type="text" id="searchUsername" placeholder="Username to find">
-                </div>
-                
-                <h2>User Data</h2>
-                <div id="userData">
-                    <p>User data will appear here</p>
-                </div>
-            </div>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+    <header class="py-6 px-4 bg-gray-800 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-blue-400 flex items-center">
+                <i data-feather="maximize-2" class="mr-2"></i>
+                QR Scanner
+            </h1>
+            <button id="toggleCamera" class="p-2 rounded-full bg-blue-600 hover:bg-blue-700 transition">
+                <i data-feather="refresh-cw"></i>
+            </button>
         </div>
-    </div>
+    </header>
+
+    <main class="flex-grow flex flex-col items-center justify-center px-4 py-8">
+        <div class="w-full max-w-md text-center mb-8">
+            <h2 class="text-xl font-semibold mb-2">Scan QR Code</h2>
+            <p class="text-gray-400">Point your camera at a QR code to scan it</p>
+        </div>
+
+        <div class="scanner-container mb-8" id="scannerContainer">
+            <video id="video" class="w-full h-auto" playsinline></video>
+            <div class="scanner-overlay"></div>
+            <div class="scanner-frame"></div>
+            <div class="scanner-animation"></div>
+        </div>
+
+        <div id="resultContainer" class="hidden w-full max-w-md bg-gray-800 rounded-lg p-4 mb-8">
+            <h3 class="text-lg font-medium mb-2">Scan Result</h3>
+            <div id="scanResult" class="break-words p-3 bg-gray-700 rounded text-blue-300"></div>
+            <button id="copyBtn" class="mt-3 w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition flex items-center justify-center">
+                <i data-feather="copy" class="mr-2"></i> Copy
+            </button>
+        </div>
+
+        <div class="w-full max-w-md">
+            <button id="startScan" class="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium flex items-center justify-center">
+                <i data-feather="camera" class="mr-2"></i> Start Scanner
+            </button>
+            <button id="stopScan" class="hidden w-full py-3 mt-4 bg-red-600 hover:bg-red-700 rounded-lg font-medium flex items-center justify-center">
+                <i data-feather="stop-circle" class="mr-2"></i> Stop Scanner
+            </button>
+        </div>
+    </main>
+
+    <footer class="py-4 px-4 bg-gray-800 text-center text-gray-400 text-sm">
+        <p>QR Code Scanner - Scan any QR code with your camera</p>
+    </footer>
 
     <script>
-        // Initialize SQLite database
-        let db;
-        const initSqlJs = SQL({
-            locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`
-        }).then(SQL => {
-            db = new SQL.Database();
-            // Create users table if it doesn't exist
-            db.run(`
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE NOT NULL,
-                    passcode TEXT NOT NULL,
-                    current_score INTEGER DEFAULT 0,
-                    history TEXT
-                );
-            `);
-            document.getElementById('status').textContent = 'Database initialized successfully!';
-            document.getElementById('status').className = 'status success';
-        });
+        document.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+            AOS.init();
 
-        // Add user to database
-        document.getElementById('addUser').addEventListener('click', function() {
-            const username = document.getElementById('username').value;
-            const passcode = document.getElementById('passcode').value;
-            const score = document.getElementById('score').value;
-            const history = document.getElementById('history').value;
-
-            if (!username || !passcode) {
-                showStatus('Username and passcode are required!', 'error');
-                return;
-            }
-
-            try {
-                db.run(
-                    'INSERT INTO users (username, passcode, current_score, history) VALUES (?, ?, ?, ?)',
-                    [username, passcode, score, history]
-                );
-                showStatus(`User "${username}" added successfully!`, 'success');
-                clearForm();
-            } catch (error) {
-                showStatus('Error adding user: ' + error.message, 'error');
-            }
-        });
-
-        // View all users
-        document.getElementById('viewUsers').addEventListener('click', function() {
-            try {
-                const result = db.exec('SELECT * FROM users');
-                if (result.length === 0) {
-                    document.getElementById('userData').innerHTML = '<p>No users found in database.</p>';
-                    return;
-                }
-
-                const users = result[0].values;
-                let html = `
-                    <table>
-                        <tr>
-                            <th>ID</th>
-                            <th>Username</th>
-                            <th>Passcode</th>
-                            <th>Score</th>
-                            <th>History</th>
-                        </tr>
-                `;
-
-                users.forEach(user => {
-                    html += `
-                        <tr>
-                            <td>${user[0]}</td>
-                            <td>${user[1]}</td>
-                            <td>${user[2]}</td>
-                            <td>${user[3]}</td>
-                            <td>${user[4] || 'No history'}</td>
-                        </tr>
-                    `;
-                });
-
-                html += '</table>';
-                document.getElementById('userData').innerHTML = html;
-                showStatus('Users loaded successfully!', 'success');
-            } catch (error) {
-                showStatus('Error loading users: ' + error.message, 'error');
-            }
-        });
-
-        // Find user
-        document.getElementById('findUser').addEventListener('click', function() {
-            const username = document.getElementById('searchUsername').value;
-            if (!username) {
-                showStatus('Please enter a username to search!', 'error');
-                return;
-            }
-
-            try {
-                const result = db.exec(
-                    'SELECT * FROM users WHERE username = ?',
-                    [username]
-                );
-
-                if (result.length === 0 || result[0].values.length === 0) {
-                    document.getElementById('userData').innerHTML = `<p>User "${username}" not found.</p>`;
-                    showStatus('User not found!', 'error');
-                    return;
-                }
-
-                const user = result[0].values[0];
-                document.getElementById('userData').innerHTML = `
-                    <div class="score-display">${user[3]}</div>
-                    <h3>User Details</h3>
-                    <p><strong>ID:</strong> ${user[0]}</p>
-                    <p><strong>Username:</strong> ${user[1]}</p>
-                    <p><strong>Passcode:</strong> ${user[2]}</p>
-                    <p><strong>Current Score:</strong> ${user[3]}</p>
-                    <p><strong>History:</strong> ${user[4] || 'No history'}</p>
-                `;
-                
-                // Fill the form with user data for potential update
-                document.getElementById('username').value = user[1];
-                document.getElementById('passcode').value = user[2];
-                document.getElementById('score').value = user[3];
-                document.getElementById('history').value = user[4] || '';
-                
-                showStatus(`User "${username}" found!`, 'success');
-            } catch (error) {
-                showStatus('Error finding user: ' + error.message, 'error');
-            }
-        });
-
-        // Update user
-        document.getElementById('updateUser').addEventListener('click', function() {
-            const username = document.getElementById('username').value;
-            const passcode = document.getElementById('passcode').value;
-            const score = document.getElementById('score').value;
-            const history = document.getElementById('history').value;
-
-            if (!username) {
-                showStatus('Please search for a user first!', 'error');
-                return;
-            }
-
-            try {
-                db.run(
-                    'UPDATE users SET passcode = ?, current_score = ?, history = ? WHERE username = ?',
-                    [passcode, score, history, username]
-                );
-                showStatus(`User "${username}" updated successfully!`, 'success');
-                clearForm();
-            } catch (error) {
-                showStatus('Error updating user: ' + error.message, 'error');
-            }
-        });
-
-        // Delete user
-        document.getElementById('deleteUser').addEventListener('click', function() {
-            const username = document.getElementById('searchUsername').value;
-            if (!username) {
-                showStatus('Please enter a username to delete!', 'error');
-                return;
-            }
-
-            try {
-                db.run(
-                    'DELETE FROM users WHERE username = ?',
-                    [username]
-                );
-                showStatus(`User "${username}" deleted successfully!`, 'success');
-                document.getElementById('searchUsername').value = '';
-                document.getElementById('userData').innerHTML = '<p>User data will appear here</p>';
-            } catch (error) {
-                showStatus('Error deleting user: ' + error.message, 'error');
-            }
-        });
-
-        // Helper function to show status messages
-        function showStatus(message, type) {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = message;
-            statusEl.className = 'status ' + type;
+            const video = document.getElementById('video');
+            const startScan = document.getElementById('startScan');
+            const stopScan = document.getElementById('stopScan');
+            const toggleCamera = document.getElementById('toggleCamera');
+            const scanResult = document.getElementById('scanResult');
+            const resultContainer = document.getElementById('resultContainer');
+            const copyBtn = document.getElementById('copyBtn');
+            const scannerContainer = document.getElementById('scannerContainer');
             
-            // Clear status after 3 seconds
-            setTimeout(() => {
-                statusEl.textContent = '';
-                statusEl.className = 'status';
-            }, 3000);
-        }
+            let stream = null;
+            let facingMode = "environment"; // Default to rear camera
+            let scanning = false;
+            let animationFrameId = null;
 
-        // Clear form fields
-        function clearForm() {
-            document.getElementById('username').value = '';
-            document.getElementById('passcode').value = '';
-            document.getElementById('score').value = '0';
-            document.getElementById('history').value = '';
-        }
+            // Function to start the camera
+            async function startCamera() {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            facingMode: facingMode,
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        },
+                        audio: false
+                    });
+                    video.srcObject = stream;
+                    video.play();
+                    startScan.classList.add('hidden');
+                    stopScan.classList.remove('hidden');
+                    resultContainer.classList.add('hidden');
+                    scanning = true;
+                    scanFrame();
+                } catch (err) {
+                    console.error("Error accessing camera:", err);
+                    alert("Could not access the camera. Please make sure you have granted camera permissions.");
+                }
+            }
+
+            // Function to stop the camera
+            function stopCamera() {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    video.srcObject = null;
+                }
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+                startScan.classList.remove('hidden');
+                stopScan.classList.add('hidden');
+                scanning = false;
+            }
+
+            // Function to scan for QR codes
+            function scanFrame() {
+                if (!scanning) return;
+
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert",
+                    });
+
+                    if (code) {
+                        scanResult.textContent = code.data;
+                        resultContainer.classList.remove('hidden');
+                        stopCamera();
+                        
+                        // Scroll to result
+                        setTimeout(() => {
+                            resultContainer.scrollIntoView({ behavior: 'smooth' });
+                        }, 300);
+                    }
+                }
+
+                animationFrameId = requestAnimationFrame(scanFrame);
+            }
+
+            // Event listeners
+            startScan.addEventListener('click', startCamera);
+            stopScan.addEventListener('click', stopCamera);
+
+            toggleCamera.addEventListener('click', () => {
+                facingMode = facingMode === "user" ? "environment" : "user";
+                if (scanning) {
+                    stopCamera();
+                    startCamera();
+                }
+            });
+
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(scanResult.textContent)
+                    .then(() => {
+                        const originalText = copyBtn.innerHTML;
+                        copyBtn.innerHTML = '<i data-feather="check" class="mr-2"></i> Copied!';
+                        feather.replace();
+                        setTimeout(() => {
+                            copyBtn.innerHTML = originalText;
+                            feather.replace();
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy text: ', err);
+                    });
+            });
+
+            // Clean up on page unload
+            window.addEventListener('beforeunload', () => {
+                stopCamera();
+            });
+        });
     </script>
 </body>
 </html>
