@@ -21,14 +21,14 @@ BEGIN
     WHERE id = NEW.id;
 END;
 
--- Insert some empty sample data
+-- Insert some empty sample datafsdfsdf
 INSERT INTO users (username, passcode, current_score, history) 
 VALUES 
 ('user1', 'pass123', 0, ''),
 ('user2', 'secret456', 0, ''),
 ('user3', 'mypass789', 0, '');
 
--- Alternative method: Create a function to calculate score from history
+-- Alternative method: Create a function to calculasdfdsffsdte score from history
 CREATE TEMPORARY VIEW user_scores AS
 SELECT 
     id,
