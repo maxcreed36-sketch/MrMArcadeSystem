@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLite User Database</title>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        header {
+            background: #2575fc;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        .description {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        .panel {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #2575fc;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background: #2575fc;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #1c64e0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #2575fc;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #e9f1ff;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .actions button {
+            flex: 1;
+        }
+        .secondary {
+            background: #6c757d;
+        }
+        .secondary:hover {
+            background: #5a6268;
+        }
+        .score-display {
+            font-size: 2rem;
+            text-align: center;
+            margin: 15px 0;
+            color: #2575fc;
+            font-weight: bold;
+        }
+        .history-list {
+            list-style-type: none;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .history-list li {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .history-list li:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SQLite User Database</h1>
+            <p class="description">Manage user accounts with scores and history - All data stored in your browser</p>
+        </header>
+
+        <div class="content">
+            <div class="panel">
+                <h2>User Management</h2>
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label for="passcode">Passcode:</label>
+                    <input type="password" id="passcode" placeholder="Enter passcode">
+                </div>
+                <div class="form-group">
+                    <label for="score">Current Score:</label>
+                    <input type="number" id="score" placeholder="Enter score" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="history">History (comma separated):</label>
+                    <input type="text" id="history" placeholder="E.g. 100,85,92">
+                </div>
+                <div class="actions">
+                    <button id="addUser">Add User</button>
+                    <button id="updateUser" class="secondary">Update User</button>
+                </div>
+                
+                <div id="status" class="status"></div>
+            </div>
+
+            <div class="panel">
+                <h2>Database Operations</h2>
+                <div class="actions">
+                    <button id="viewUsers">View All Users</button>
+                    <button id="findUser" class="secondary">Find User</button>
+                    <button id="deleteUser" class="secondary">Delete User</button>
+                </div>
+                
+                <div class="form-group">
+                    <label for="searchUsername">Search Username:</label>
+                    <input type="text" id="searchUsername" placeholder="Username to find">
+                </div>
+                
+                <h2>User Data</h2>
+                <div id="userData">
+                    <p>User data will appear here</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize SQLite database
+        let db;
+        const initSqlJs = SQL({
+            locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/${file}`
+        }).then(SQL => {
+            db = new SQL.Database();
+            // Create users table if it doesn't exist
+            db.run(`
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    passcode TEXT NOT NULL,
+                    current_score INTEGER DEFAULT 0,
+                    history TEXT
+                );
+            `);
+            document.getElementById('status').textContent = 'Database initialized successfully!';
+            document.getElementById('status').className = 'status success';
+        });
+
+        // Add user to database
+        document.getElementById('addUser').addEventListener('click', function() {
+            const username = document.getElementById('username').value;
+            const passcode = document.getElementById('passcode').value;
+            const score = document.getElementById('score').value;
+            const history = document.getElementById('history').value;
+
+            if (!username || !passcode) {
+                showStatus('Username and passcode are required!', 'error');
+                return;
+            }
+
+            try {
+                db.run(
+                    'INSERT INTO users (username, passcode, current_score, history) VALUES (?, ?, ?, ?)',
+                    [username, passcode, score, history]
+                );
+                showStatus(`User "${username}" added successfully!`, 'success');
+                clearForm();
+            } catch (error) {
+                showStatus('Error adding user: ' + error.message, 'error');
+            }
+        });
+
+        // View all users
+        document.getElementById('viewUsers').addEventListener('click', function() {
+            try {
+                const result = db.exec('SELECT * FROM users');
+                if (result.length === 0) {
+                    document.getElementById('userData').innerHTML = '<p>No users found in database.</p>';
+                    return;
+                }
+
+                const users = result[0].values;
+                let html = `
+                    <table>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Passcode</th>
+                            <th>Score</th>
+                            <th>History</th>
+                        </tr>
+                `;
+
+                users.forEach(user => {
+                    html += `
+                        <tr>
+                            <td>${user[0]}</td>
+                            <td>${user[1]}</td>
+                            <td>${user[2]}</td>
+                            <td>${user[3]}</td>
+                            <td>${user[4] || 'No history'}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</table>';
+                document.getElementById('userData').innerHTML = html;
+                showStatus('Users loaded successfully!', 'success');
+            } catch (error) {
+                showStatus('Error loading users: ' + error.message, 'error');
+            }
+        });
+
+        // Find user
+        document.getElementById('findUser').addEventListener('click', function() {
+            const username = document.getElementById('searchUsername').value;
+            if (!username) {
+                showStatus('Please enter a username to search!', 'error');
+                return;
+            }
+
+            try {
+                const result = db.exec(
+                    'SELECT * FROM users WHERE username = ?',
+                    [username]
+                );
+
+                if (result.length === 0 || result[0].values.length === 0) {
+                    document.getElementById('userData').innerHTML = `<p>User "${username}" not found.</p>`;
+                    showStatus('User not found!', 'error');
+                    return;
+                }
+
+                const user = result[0].values[0];
+                document.getElementById('userData').innerHTML = `
+                    <div class="score-display">${user[3]}</div>
+                    <h3>User Details</h3>
+                    <p><strong>ID:</strong> ${user[0]}</p>
+                    <p><strong>Username:</strong> ${user[1]}</p>
+                    <p><strong>Passcode:</strong> ${user[2]}</p>
+                    <p><strong>Current Score:</strong> ${user[3]}</p>
+                    <p><strong>History:</strong> ${user[4] || 'No history'}</p>
+                `;
+                
+                // Fill the form with user data for potential update
+                document.getElementById('username').value = user[1];
+                document.getElementById('passcode').value = user[2];
+                document.getElementById('score').value = user[3];
+                document.getElementById('history').value = user[4] || '';
+                
+                showStatus(`User "${username}" found!`, 'success');
+            } catch (error) {
+                showStatus('Error finding user: ' + error.message, 'error');
+            }
+        });
+
+        // Update user
+        document.getElementById('updateUser').addEventListener('click', function() {
+            const username = document.getElementById('username').value;
+            const passcode = document.getElementById('passcode').value;
+            const score = document.getElementById('score').value;
+            const history = document.getElementById('history').value;
+
+            if (!username) {
+                showStatus('Please search for a user first!', 'error');
+                return;
+            }
+
+            try {
+                db.run(
+                    'UPDATE users SET passcode = ?, current_score = ?, history = ? WHERE username = ?',
+                    [passcode, score, history, username]
+                );
+                showStatus(`User "${username}" updated successfully!`, 'success');
+                clearForm();
+            } catch (error) {
+                showStatus('Error updating user: ' + error.message, 'error');
+            }
+        });
+
+        // Delete user
+        document.getElementById('deleteUser').addEventListener('click', function() {
+            const username = document.getElementById('searchUsername').value;
+            if (!username) {
+                showStatus('Please enter a username to delete!', 'error');
+                return;
+            }
+
+            try {
+                db.run(
+                    'DELETE FROM users WHERE username = ?',
+                    [username]
+                );
+                showStatus(`User "${username}" deleted successfully!`, 'success');
+                document.getElementById('searchUsername').value = '';
+                document.getElementById('userData').innerHTML = '<p>User data will appear here</p>';
+            } catch (error) {
+                showStatus('Error deleting user: ' + error.message, 'error');
+            }
+        });
+
+        // Helper function to show status messages
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + type;
+            
+            // Clear status after 3 seconds
+            setTimeout(() => {
+                statusEl.textContent = '';
+                statusEl.className = 'status';
+            }, 3000);
+        }
+
+        // Clear form fields
+        function clearForm() {
+            document.getElementById('username').value = '';
+            document.getElementById('passcode').value = '';
+            document.getElementById('score').value = '0';
+            document.getElementById('history').value = '';
+        }
+    </script>
+</body>
+</html>
