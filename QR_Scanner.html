@@ -3,22 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Number QR Generator</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <title>QR Code Scanner with Point Adjustment</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         body {
             background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            min-height: 100vh;
+            color: #333;
             display: flex;
             justify-content: center;
             align-items: center;
+            min-height: 100vh;
             padding: 20px;
         }
         
@@ -27,7 +28,7 @@
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             width: 90%;
-            max-width: 500px;
+            max-width: 600px;
             padding: 30px;
             text-align: center;
         }
@@ -35,102 +36,131 @@
         h1 {
             color: #333;
             margin-bottom: 20px;
-            font-weight: 600;
+            font-size: 28px;
         }
         
         .description {
             color: #666;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
+            font-size: 16px;
             line-height: 1.5;
         }
         
-        .toggle-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 15px;
+        .section {
+            margin-bottom: 25px;
+            text-align: left;
         }
         
-        .toggle-label {
+        .section-title {
             font-size: 18px;
-            font-weight: 500;
-            color: #444;
+            margin-bottom: 10px;
+            color: #2575fc;
+            font-weight: 600;
         }
         
-        .toggle-switch {
+        #qr-scanner {
+            width: 100%;
+            height: 250px;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            overflow: hidden;
             position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 30px;
         }
         
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         
-        .slider {
+        #canvas {
+            display: none;
+        }
+        
+        .scan-line {
             position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ff4d4d;
-            transition: .4s;
-            border-radius: 34px;
+            height: 2px;
+            width: 100%;
+            background: #2575fc;
+            top: 50%;
+            animation: scan 2s infinite linear;
         }
         
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 22px;
-            width: 22px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        
-        input:checked + .slider {
-            background-color: #4CAF50;
-        }
-        
-        input:checked + .slider:before {
-            transform: translateX(30px);
+        @keyframes scan {
+            0% { top: 10%; }
+            50% { top: 90%; }
+            100% { top: 10%; }
         }
         
         .input-group {
-            margin-bottom: 25px;
+            margin-bottom: 15px;
         }
         
-        input[type="number"] {
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        input {
             width: 100%;
-            padding: 15px;
-            border: 2px solid #ddd;
+            padding: 12px;
+            border: 1px solid #ddd;
             border-radius: 8px;
             font-size: 16px;
-            transition: border-color 0.3s;
         }
         
-        input[type="number"]:focus {
-            border-color: #6a11cb;
-            outline: none;
+        .score-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .score-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .minus-btn {
+            background-color: #ff4757;
+            color: white;
+        }
+        
+        .minus-btn:hover {
+            background-color: #ff2e43;
+        }
+        
+        .plus-btn {
+            background-color: #2ed573;
+            color: white;
+        }
+        
+        .plus-btn:hover {
+            background-color: #25b561;
         }
         
         button {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            background: linear-gradient(to right, #6a11cb, #2575fc);
             color: white;
             border: none;
-            padding: 15px 25px;
+            padding: 14px 25px;
             border-radius: 8px;
-            font-size: 16px;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            font-size: 16px;
             font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
             margin-top: 10px;
         }
         
@@ -139,116 +169,242 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
         
-        button:active {
-            transform: translateY(0);
-        }
-        
-        .qr-container {
-            margin-top: 30px;
-            padding: 20px;
-            border-radius: 10px;
-            background-color: #f9f9f9;
-            display: none;
-        }
-        
-        #qrCode {
-            margin: 0 auto;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            display: inline-block;
-        }
-        
-        .prefix-display {
-            margin-top: 15px;
-            font-size: 18px;
-            color: #444;
-            font-weight: 500;
-        }
-        
-        .footer {
+        #output {
             margin-top: 25px;
-            color: #888;
-            font-size: 14px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #2575fc;
+            text-align: left;
+        }
+        
+        #output-text {
+            font-family: monospace;
+            font-size: 18px;
+            word-break: break-all;
+        }
+        
+        .instructions {
+            background-color: #f0f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .instructions h3 {
+            color: #2575fc;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .status {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+        }
+        
+        @media (max-width: 500px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            #qr-scanner {
+                height: 200px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Number QR Generator</h1>
-        <p class="description">Enter any number and choose whether to generate a QR code with a plus or minus prefix.</p>
+        <h1>QR Code Scanner with Point Adjustment</h1>
+        <p class="description">Scan a QR code to capture username, then add positive or negative points to generate formatted data.</p>
         
-        <div class="toggle-container">
-            <span class="toggle-label">-Number</span>
-            <label class="toggle-switch">
-                <input type="checkbox" id="signToggle">
-                <span class="slider"></span>
-            </label>
-            <span class="toggle-label">+Number</span>
+        <div class="section">
+            <div class="section-title">1. Scan QR Code</div>
+            <div id="qr-scanner">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas" style="display: none;"></canvas>
+                <div class="scan-line"></div>
+            </div>
+            <button id="start-button">Start Camera</button>
+            <div class="status" id="scan-status">Camera not started. Click "Start Camera" to begin.</div>
         </div>
         
-        <div class="input-group">
-            <input type="number" id="numberInput" placeholder="Enter a number...">
+        <div class="section">
+            <div class="section-title">2. User Information</div>
+            <div class="input-group">
+                <label for="username">Username (from QR code)</label>
+                <input type="text" id="username" placeholder="Scanned username will appear here" readonly>
+            </div>
+            
+            <div class="input-group">
+                <label for="score">Points (adjust with +/- buttons)</label>
+                <input type="number" id="score" value="0">
+                <div class="score-controls">
+                    <button class="score-btn minus-btn" id="decrease-btn">-</button>
+                    <span>Adjust points</span>
+                    <button class="score-btn plus-btn" id="increase-btn">+</button>
+                </div>
+            </div>
         </div>
         
-        <button onclick="generateQR()">Generate QR Code</button>
-        
-        <div class="qr-container" id="qrContainer">
-            <canvas id="qrCode"></canvas>
-            <div class="prefix-display" id="prefixDisplay"></div>
+        <div class="section">
+            <div class="section-title">3. Generate Output</div>
+            <button id="generate-button">Generate Formatted Data</button>
+            
+            <div id="output">
+                <div class="section-title">Output</div>
+                <div id="output-text">/Username?/±Score?/DateAndTime</div>
+            </div>
         </div>
         
-        <p class="footer">Scan the QR code to see your number with the selected prefix</p>
+        <div class="instructions">
+            <h3>How to use:</h3>
+            <ol>
+                <li>Click "Start Camera" and allow camera access</li>
+                <li>Point your camera at a QR code to scan it</li>
+                <li>The username will be automatically captured</li>
+                <li>Adjust points using the + and - buttons</li>
+                <li>Click "Generate Formatted Data" to create the output</li>
+            </ol>
+        </div>
     </div>
 
     <script>
-        function generateQR() {
-            const numberInput = document.getElementById('numberInput').value;
-            const isPositive = document.getElementById('signToggle').checked;
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const startButton = document.getElementById('start-button');
+            const generateButton = document.getElementById('generate-button');
+            const usernameInput = document.getElementById('username');
+            const scoreInput = document.getElementById('score');
+            const increaseBtn = document.getElementById('increase-btn');
+            const decreaseBtn = document.getElementById('decrease-btn');
+            const outputText = document.getElementById('output-text');
+            const scanStatus = document.getElementById('scan-status');
             
-            if (!numberInput) {
-                alert("Please enter a number first!");
-                return;
-            }
+            let stream = null;
+            let scanning = false;
+            let canvasContext = canvas.getContext('2d');
             
-            const prefix = isPositive ? "+Number" : "-Number";
-            const qrText = prefix + numberInput;
-            const canvas = document.getElementById('qrCode');
-            const qrContainer = document.getElementById('qrContainer');
-            const prefixDisplay = document.getElementById('prefixDisplay');
-            
-            // Update prefix display
-            prefixDisplay.textContent = `QR Code will display: ${qrText}`;
-            
-            // Clear previous QR code
-            canvas.width = 250;
-            canvas.height = 250;
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Generate new QR code
-            QRCode.toCanvas(canvas, qrText, {
-                width: 200,
-                margin: 2,
-                color: {
-                    dark: '#000000',
-                    light: '#ffffff'
-                }
-            }, function(error) {
-                if (error) {
-                    console.error(error);
-                    alert("An error occurred while generating the QR code.");
-                } else {
-                    qrContainer.style.display = 'block';
+            // Function to start the camera
+            startButton.addEventListener('click', async function() {
+                try {
+                    if (stream) {
+                        // If camera is already running, stop it
+                        stopCamera();
+                        startButton.textContent = 'Start Camera';
+                        scanStatus.textContent = 'Camera stopped';
+                        scanning = false;
+                    } else {
+                        // Request camera access
+                        stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { facingMode: "environment" } 
+                        });
+                        video.srcObject = stream;
+                        startButton.textContent = 'Stop Camera';
+                        scanStatus.textContent = 'Camera started. Point at a QR code.';
+                        scanning = true;
+                        
+                        // Start scanning for QR codes
+                        requestAnimationFrame(tick);
+                    }
+                } catch (error) {
+                    console.error('Error accessing camera:', error);
+                    scanStatus.textContent = 'Error accessing camera: ' + error.message;
                 }
             });
-        }
-        
-        // Allow generating QR code by pressing Enter
-        document.getElementById('numberInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                generateQR();
+            
+            // Function to stop the camera
+            function stopCamera() {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                    video.srcObject = null;
+                }
             }
+            
+            // Function to process each video frame for QR codes
+            function tick() {
+                if (!scanning) return;
+                
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.height = video.videoHeight;
+                    canvas.width = video.videoWidth;
+                    canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: 'dontInvert',
+                    });
+                    
+                    if (code) {
+                        // QR code detected
+                        usernameInput.value = code.data;
+                        scanStatus.textContent = 'QR code scanned successfully!';
+                    }
+                }
+                
+                requestAnimationFrame(tick);
+            }
+            
+            // Function to increase points
+            increaseBtn.addEventListener('click', function() {
+                let currentValue = parseInt(scoreInput.value) || 0;
+                scoreInput.value = currentValue + 1;
+            });
+            
+            // Function to decrease points
+            decreaseBtn.addEventListener('click', function() {
+                let currentValue = parseInt(scoreInput.value) || 0;
+                scoreInput.value = currentValue - 1;
+            });
+            
+            // Function to generate the formatted output
+            generateButton.addEventListener('click', function() {
+                const username = usernameInput.value || 'Username';
+                let score = parseInt(scoreInput.value) || 0;
+                
+                // Determine the sign for the score
+                const sign = score >= 0 ? '+' : '';
+                
+                // Get current date and time in the required format
+                const now = new Date();
+                const date = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear();
+                
+                let hours = now.getHours();
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? String(hours).padStart(2, '0') : '12'; // the hour '0' should be '12'
+                
+                const formattedDateTime = `${date}-${month}-${year} ${hours}:${minutes}:${seconds}${ampm}`;
+                
+                // Generate the output string
+                const output = `/${username}?/${sign}${score}?/${formattedDateTime}`;
+                outputText.textContent = output;
+            });
+            
+            // Clean up when leaving the page
+            window.addEventListener('beforeunload', function() {
+                stopCamera();
+            });
         });
     </script>
 </body>
