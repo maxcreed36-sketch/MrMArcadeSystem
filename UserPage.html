@@ -3,232 +3,306 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Scanner</title>
+    <title>Score Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="https://unpkg.com/feather-icons"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        .scanner-container {
-            position: relative;
+        #qr-reader {
             width: 100%;
-            max-width: 400px;
+            max-width: 500px;
             margin: 0 auto;
-            overflow: hidden;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
-        .scanner-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.1) 100%);
-            z-index: 1;
-            pointer-events: none;
+        #qr-reader__dashboard_section_csr {
+            padding: 10px;
         }
-        .scanner-frame {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 70%;
-            height: 70%;
-            border: 3px solid rgba(255, 255, 255, 0.7);
-            border-radius: 12px;
-            box-shadow: 0 0 0 10000px rgba(0, 0, 0, 0.5);
-            z-index: 2;
-            pointer-events: none;
+        .capitalize-input {
+            text-transform: uppercase;
         }
-        .scanner-animation {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, rgba(59, 130, 246, 0), rgba(59, 130, 246, 0.8), rgba(59, 130, 246, 0));
-            animation: scan 2s infinite linear;
-            z-index: 3;
-        }
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
+        .history-item {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 8px 0;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col">
-    <header class="py-6 px-4 bg-gray-800 shadow-lg">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-blue-400 flex items-center">
-                <i data-feather="maximize-2" class="mr-2"></i>
-                QR Scanner
-            </h1>
-            <button id="toggleCamera" class="p-2 rounded-full bg-blue-600 hover:bg-blue-700 transition">
-                <i data-feather="refresh-cw"></i>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Main Menu -->
+        <div id="main-menu" class="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto">
+            <h1 class="text-2xl font-bold text-center mb-6 text-blue-600">Score Tracker</h1>
+            
+            <div class="mb-6">
+                <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input type="text" id="username" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 capitalize-input" 
+                       placeholder="Enter username (letters & numbers)" maxlength="20">
+                <p class="text-xs text-gray-500 mt-1">Only alphanumeric characters allowed</p>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Current Score</label>
+                <div class="text-3xl font-bold text-center py-2" id="current-score">0</div>
+            </div>
+
+            <div class="flex flex-col space-y-4">
+                <button id="play-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center">
+                    <i data-feather="play" class="mr-2"></i> PLAY
+                </button>
+                <button id="record-score-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center">
+                    <i data-feather="plus-circle" class="mr-2"></i> RECORD SCORE
+                </button>
+                <button id="view-history-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center">
+                    <i data-feather="list" class="mr-2"></i> VIEW HISTORY
+                </button>
+            </div>
+        </div>
+
+        <!-- QR Code Display -->
+        <div id="qr-display" class="hidden bg-white rounded-lg shadow-md p-6 max-w-md mx-auto mt-8">
+            <h2 class="text-xl font-bold text-center mb-4">Your QR Code</h2>
+            <div id="qr-code" class="flex justify-center mb-4"></div>
+            <button id="back-to-menu-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
+                Back to Menu
             </button>
         </div>
-    </header>
 
-    <main class="flex-grow flex flex-col items-center justify-center px-4 py-8">
-        <div class="w-full max-w-md text-center mb-8">
-            <h2 class="text-xl font-semibold mb-2">Scan QR Code</h2>
-            <p class="text-gray-400">Point your camera at a QR code to scan it</p>
-        </div>
-
-        <div class="scanner-container mb-8" id="scannerContainer">
-            <video id="video" class="w-full h-auto" playsinline></video>
-            <div class="scanner-overlay"></div>
-            <div class="scanner-frame"></div>
-            <div class="scanner-animation"></div>
-        </div>
-
-        <div id="resultContainer" class="hidden w-full max-w-md bg-gray-800 rounded-lg p-4 mb-8">
-            <h3 class="text-lg font-medium mb-2">Scan Result</h3>
-            <div id="scanResult" class="break-words p-3 bg-gray-700 rounded text-blue-300"></div>
-            <button id="copyBtn" class="mt-3 w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition flex items-center justify-center">
-                <i data-feather="copy" class="mr-2"></i> Copy
+        <!-- QR Scanner -->
+        <div id="qr-scanner" class="hidden bg-white rounded-lg shadow-md p-6 max-w-md mx-auto mt-8">
+            <h2 class="text-xl font-bold text-center mb-4">Scan QR Code</h2>
+            <div id="qr-reader" class="mb-4"></div>
+            <button id="cancel-scan-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
+                Cancel Scan
             </button>
         </div>
 
-        <div class="w-full max-w-md">
-            <button id="startScan" class="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium flex items-center justify-center">
-                <i data-feather="camera" class="mr-2"></i> Start Scanner
-            </button>
-            <button id="stopScan" class="hidden w-full py-3 mt-4 bg-red-600 hover:bg-red-700 rounded-lg font-medium flex items-center justify-center">
-                <i data-feather="stop-circle" class="mr-2"></i> Stop Scanner
+        <!-- History View -->
+        <div id="history-view" class="hidden bg-white rounded-lg shadow-md p-6 max-w-md mx-auto mt-8">
+            <h2 class="text-xl font-bold text-center mb-4">Score History</h2>
+            <div id="history-list" class="mb-4"></div>
+            <button id="back-from-history-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
+                Back to Menu
             </button>
         </div>
-    </main>
-
-    <footer class="py-4 px-4 bg-gray-800 text-center text-gray-400 text-sm">
-        <p>QR Code Scanner - Scan any QR code with your camera</p>
-    </footer>
+    </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            feather.replace();
-            AOS.init();
+        // Initialize feather icons
+        feather.replace();
 
-            const video = document.getElementById('video');
-            const startScan = document.getElementById('startScan');
-            const stopScan = document.getElementById('stopScan');
-            const toggleCamera = document.getElementById('toggleCamera');
-            const scanResult = document.getElementById('scanResult');
-            const resultContainer = document.getElementById('resultContainer');
-            const copyBtn = document.getElementById('copyBtn');
-            const scannerContainer = document.getElementById('scannerContainer');
+        // DOM elements
+        const usernameInput = document.getElementById('username');
+        const currentScoreDisplay = document.getElementById('current-score');
+        const playBtn = document.getElementById('play-btn');
+        const recordScoreBtn = document.getElementById('record-score-btn');
+        const viewHistoryBtn = document.getElementById('view-history-btn');
+        const qrDisplay = document.getElementById('qr-display');
+        const qrCodeDiv = document.getElementById('qr-code');
+        const backToMenuBtn = document.getElementById('back-to-menu-btn');
+        const qrScanner = document.getElementById('qr-scanner');
+        const cancelScanBtn = document.getElementById('cancel-scan-btn');
+        const historyView = document.getElementById('history-view');
+        const historyList = document.getElementById('history-list');
+        const backFromHistoryBtn = document.getElementById('back-from-history-btn');
+        const mainMenu = document.getElementById('main-menu');
+
+        // State variables
+        let currentUsername = '';
+        let currentScore = 0;
+        let html5QrCode;
+
+        // Initialize from localStorage
+        function initializeFromStorage() {
+            const savedUsername = localStorage.getItem('username');
+            const savedScore = localStorage.getItem('score');
             
-            let stream = null;
-            let facingMode = "environment"; // Default to rear camera
-            let scanning = false;
-            let animationFrameId = null;
+            if (savedUsername) {
+                usernameInput.value = savedUsername;
+                currentUsername = savedUsername;
+            }
+            
+            if (savedScore) {
+                currentScore = parseInt(savedScore);
+                currentScoreDisplay.textContent = currentScore;
+            }
+        }
 
-            // Function to start the camera
-            async function startCamera() {
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: { 
-                            facingMode: facingMode,
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
-                        },
-                        audio: false
+        // Format date
+        function formatDate(date) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            
+            let hours = date.getHours();
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            
+            return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}${ampm}`;
+        }
+
+        // Generate QR code
+        function generateQRCode() {
+            const formattedDate = formatDate(new Date());
+            const qrData = `${currentUsername}/${currentScore}/${formattedDate}`;
+            
+            const qr = qrcode(0, 'L');
+            qr.addData(qrData);
+            qr.make();
+            
+            qrCodeDiv.innerHTML = qr.createImgTag(5);
+        }
+
+        // Validate username
+        function validateUsername(username) {
+            return /^[a-zA-Z0-9]+$/.test(username);
+        }
+
+        // Save score to history
+        function saveScoreToHistory(scoreData) {
+            let history = JSON.parse(localStorage.getItem('scoreHistory') || '[]');
+            
+            // Check if this exact record already exists
+            const exists = history.some(item => item.raw === scoreData);
+            if (!exists) {
+                const parts = scoreData.split('/');
+                if (parts.length === 3 && parts[0] === currentUsername) {
+                    history.unshift({
+                        username: parts[0],
+                        score: parts[1],
+                        date: parts[2],
+                        raw: scoreData
                     });
-                    video.srcObject = stream;
-                    video.play();
-                    startScan.classList.add('hidden');
-                    stopScan.classList.remove('hidden');
-                    resultContainer.classList.add('hidden');
-                    scanning = true;
-                    scanFrame();
-                } catch (err) {
-                    console.error("Error accessing camera:", err);
-                    alert("Could not access the camera. Please make sure you have granted camera permissions.");
-                }
-            }
-
-            // Function to stop the camera
-            function stopCamera() {
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
-                    video.srcObject = null;
-                }
-                if (animationFrameId) {
-                    cancelAnimationFrame(animationFrameId);
-                    animationFrameId = null;
-                }
-                startScan.classList.remove('hidden');
-                stopScan.classList.add('hidden');
-                scanning = false;
-            }
-
-            // Function to scan for QR codes
-            function scanFrame() {
-                if (!scanning) return;
-
-                if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                     
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: "dontInvert",
-                    });
-
-                    if (code) {
-                        scanResult.textContent = code.data;
-                        resultContainer.classList.remove('hidden');
-                        stopCamera();
-                        
-                        // Scroll to result
-                        setTimeout(() => {
-                            resultContainer.scrollIntoView({ behavior: 'smooth' });
-                        }, 300);
+                    // Update current score
+                    const scoreChange = parseInt(parts[1]);
+                    if (!isNaN(scoreChange)) {
+                        currentScore += scoreChange;
+                        currentScoreDisplay.textContent = currentScore;
+                        localStorage.setItem('score', currentScore.toString());
                     }
+                    
+                    localStorage.setItem('scoreHistory', JSON.stringify(history));
+                    return true;
                 }
-
-                animationFrameId = requestAnimationFrame(scanFrame);
             }
+            return false;
+        }
 
-            // Event listeners
-            startScan.addEventListener('click', startCamera);
-            stopScan.addEventListener('click', stopCamera);
-
-            toggleCamera.addEventListener('click', () => {
-                facingMode = facingMode === "user" ? "environment" : "user";
-                if (scanning) {
-                    stopCamera();
-                    startCamera();
-                }
+        // Load history
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('scoreHistory') || '[]');
+            historyList.innerHTML = '';
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<p class="text-gray-500 text-center py-4">No history yet</p>';
+                return;
+            }
+            
+            history.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="flex justify-between">
+                        <span class="font-medium">${item.score}</span>
+                        <span class="text-sm text-gray-500">${item.date}</span>
+                    </div>
+                `;
+                historyList.appendChild(historyItem);
             });
+        }
 
-            copyBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(scanResult.textContent)
-                    .then(() => {
-                        const originalText = copyBtn.innerHTML;
-                        copyBtn.innerHTML = '<i data-feather="check" class="mr-2"></i> Copied!';
-                        feather.replace();
-                        setTimeout(() => {
-                            copyBtn.innerHTML = originalText;
-                            feather.replace();
-                        }, 2000);
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy text: ', err);
-                    });
-            });
-
-            // Clean up on page unload
-            window.addEventListener('beforeunload', () => {
-                stopCamera();
-            });
+        // Event listeners
+        usernameInput.addEventListener('input', function(e) {
+            // Force uppercase and remove invalid characters
+            this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            
+            if (this.value.length > 0 && validateUsername(this.value)) {
+                currentUsername = this.value;
+                localStorage.setItem('username', currentUsername);
+            }
         });
+
+        playBtn.addEventListener('click', function() {
+            if (!currentUsername || !validateUsername(currentUsername)) {
+                alert('Please enter a valid username (letters and numbers only)');
+                return;
+            }
+            
+            generateQRCode();
+            mainMenu.classList.add('hidden');
+            qrDisplay.classList.remove('hidden');
+        });
+
+        recordScoreBtn.addEventListener('click', function() {
+            if (!currentUsername || !validateUsername(currentUsername)) {
+                alert('Please enter a valid username (letters and numbers only)');
+                return;
+            }
+            
+            mainMenu.classList.add('hidden');
+            qrScanner.classList.remove('hidden');
+            
+            // Initialize QR scanner
+            html5QrCode = new Html5Qrcode("qr-reader");
+            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                if (saveScoreToHistory(decodedText)) {
+                    alert('Score recorded successfully!');
+                } else {
+                    alert('This score has already been recorded or is invalid.');
+                }
+                html5QrCode.stop().then(() => {
+                    qrScanner.classList.add('hidden');
+                    mainMenu.classList.remove('hidden');
+                }).catch(err => {
+                    console.error("Error stopping scanner", err);
+                });
+            };
+            
+            const config = { fps: 10, qrbox: 250 };
+            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
+        });
+
+        viewHistoryBtn.addEventListener('click', function() {
+            if (!currentUsername || !validateUsername(currentUsername)) {
+                alert('Please enter a valid username (letters and numbers only)');
+                return;
+            }
+            
+            loadHistory();
+            mainMenu.classList.add('hidden');
+            historyView.classList.remove('hidden');
+        });
+
+        backToMenuBtn.addEventListener('click', function() {
+            qrDisplay.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+        });
+
+        cancelScanBtn.addEventListener('click', function() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    qrScanner.classList.add('hidden');
+                    mainMenu.classList.remove('hidden');
+                }).catch(err => {
+                    console.error("Error stopping scanner", err);
+                });
+            } else {
+                qrScanner.classList.add('hidden');
+                mainMenu.classList.remove('hidden');
+            }
+        });
+
+        backFromHistoryBtn.addEventListener('click', function() {
+            historyView.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initializeFromStorage);
     </script>
 </body>
 </html>
