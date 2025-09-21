@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Scanner with Point Adjustment</title>
+    <title>QR Code Scanner with Optional Username</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         * {
@@ -169,6 +169,11 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
         
+        .secondary-btn {
+            background: linear-gradient(to right, #f5a623, #f5e623);
+            margin-top: 5px;
+        }
+        
         #output {
             margin-top: 25px;
             padding: 20px;
@@ -211,6 +216,22 @@
             color: #666;
         }
         
+        .toggle-input {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .toggle-input button {
+            width: auto;
+            padding: 8px 15px;
+            margin: 0 10px 0 0;
+        }
+        
+        .active-mode {
+            background: linear-gradient(to right, #2575fc, #6a11cb) !important;
+        }
+        
         @media (max-width: 500px) {
             .container {
                 padding: 20px;
@@ -228,27 +249,37 @@
 </head>
 <body>
     <div class="container">
-        <h1>QR Code Scanner with Point Adjustment</h1>
-        <p class="description">Scan a QR code to capture username, then add positive or negative points to generate formatted data.</p>
+        <h1>QR Code Scanner with Optional Username</h1>
+        <p class="description">Scan a QR code to capture username or type it manually, then add positive or negative points to generate formatted data.</p>
         
         <div class="section">
-            <div class="section-title">1. Scan QR Code</div>
-            <div id="qr-scanner">
-                <video id="video" autoplay playsinline></video>
-                <canvas id="canvas" style="display: none;"></canvas>
-                <div class="scan-line"></div>
+            <div class="section-title">1. Get Username</div>
+            
+            <div class="toggle-input">
+                <button id="scan-mode-btn" class="active-mode">Scan QR Code</button>
+                <button id="manual-mode-btn">Type Manually</button>
             </div>
-            <button id="start-button">Start Camera</button>
-            <div class="status" id="scan-status">Camera not started. Click "Start Camera" to begin.</div>
+            
+            <div id="qr-section">
+                <div id="qr-scanner">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas" style="display: none;"></canvas>
+                    <div class="scan-line"></div>
+                </div>
+                <button id="start-button">Start Camera</button>
+                <div class="status" id="scan-status">Camera not started. Click "Start Camera" to begin.</div>
+            </div>
+            
+            <div id="manual-section" style="display: none;">
+                <div class="input-group">
+                    <label for="manual-username">Enter Username</label>
+                    <input type="text" id="manual-username" placeholder="Type username here">
+                </div>
+            </div>
         </div>
         
         <div class="section">
-            <div class="section-title">2. User Information</div>
-            <div class="input-group">
-                <label for="username">Username (from QR code)</label>
-                <input type="text" id="username" placeholder="Scanned username will appear here" readonly>
-            </div>
-            
+            <div class="section-title">2. Adjust Points</div>
             <div class="input-group">
                 <label for="score">Points (adjust with +/- buttons)</label>
                 <input type="number" id="score" value="0">
@@ -273,9 +304,9 @@
         <div class="instructions">
             <h3>How to use:</h3>
             <ol>
-                <li>Click "Start Camera" and allow camera access</li>
+                <li>Choose to either scan a QR code or type the username manually</li>
+                <li>If scanning, click "Start Camera" and allow camera access</li>
                 <li>Point your camera at a QR code to scan it</li>
-                <li>The username will be automatically captured</li>
                 <li>Adjust points using the + and - buttons</li>
                 <li>Click "Generate Formatted Data" to create the output</li>
             </ol>
@@ -288,16 +319,50 @@
             const canvas = document.getElementById('canvas');
             const startButton = document.getElementById('start-button');
             const generateButton = document.getElementById('generate-button');
-            const usernameInput = document.getElementById('username');
+            const usernameInput = document.getElementById('manual-username');
             const scoreInput = document.getElementById('score');
             const increaseBtn = document.getElementById('increase-btn');
             const decreaseBtn = document.getElementById('decrease-btn');
             const outputText = document.getElementById('output-text');
             const scanStatus = document.getElementById('scan-status');
+            const scanModeBtn = document.getElementById('scan-mode-btn');
+            const manualModeBtn = document.getElementById('manual-mode-btn');
+            const qrSection = document.getElementById('qr-section');
+            const manualSection = document.getElementById('manual-section');
             
             let stream = null;
             let scanning = false;
             let canvasContext = canvas.getContext('2d');
+            let currentMode = 'scan'; // 'scan' or 'manual'
+            
+            // Function to switch between scan and manual mode
+            scanModeBtn.addEventListener('click', function() {
+                if (currentMode !== 'scan') {
+                    currentMode = 'scan';
+                    qrSection.style.display = 'block';
+                    manualSection.style.display = 'none';
+                    scanModeBtn.classList.add('active-mode');
+                    manualModeBtn.classList.remove('active-mode');
+                }
+            });
+            
+            manualModeBtn.addEventListener('click', function() {
+                if (currentMode !== 'manual') {
+                    currentMode = 'manual';
+                    qrSection.style.display = 'none';
+                    manualSection.style.display = 'block';
+                    manualModeBtn.classList.add('active-mode');
+                    scanModeBtn.classList.remove('active-mode');
+                    
+                    // Stop camera if it's running
+                    if (stream) {
+                        stopCamera();
+                        startButton.textContent = 'Start Camera';
+                        scanStatus.textContent = 'Camera stopped';
+                        scanning = false;
+                    }
+                }
+            });
             
             // Function to start the camera
             startButton.addEventListener('click', async function() {
@@ -374,7 +439,14 @@
             
             // Function to generate the formatted output
             generateButton.addEventListener('click', function() {
-                const username = usernameInput.value || 'Username';
+                let username = '';
+                
+                if (currentMode === 'manual') {
+                    username = usernameInput.value || 'Username';
+                } else {
+                    username = usernameInput.value || 'Username';
+                }
+                
                 let score = parseInt(scoreInput.value) || 0;
                 
                 // Determine the sign for the score
