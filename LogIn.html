@@ -3,436 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Authentication System</title>
+    <title>MrM Arcade System - Login</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
         body {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 0 auto;
             padding: 20px;
+            background-color: #f5f5f5;
         }
-        
         .container {
-            width: 100%;
-            max-width: 450px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        
-        .header {
-            background: #4a6fc7;
-            color: white;
+        h1 {
             text-align: center;
-            padding: 25px 20px;
-        }
-        
-        .header h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-        
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        
-        .form-container {
-            padding: 25px;
-        }
-        
-        .input-group {
-            margin-bottom: 20px;
-        }
-        
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
             color: #333;
         }
-        
-        .input-group input {
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"],
+        input[type="password"] {
             width: 100%;
-            padding: 14px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
-        
-        .input-group input:focus {
-            border-color: #4a6fc7;
-            outline: none;
-        }
-        
-        .input-group input.invalid {
-            border-color: #ff4757;
-        }
-        
-        .error-text {
-            color: #ff4757;
-            font-size: 14px;
-            margin-top: 5px;
-            display: none;
-        }
-        
-        .btn {
+        button {
             width: 100%;
-            padding: 14px;
-            background: #4a6fc7;
+            padding: 10px;
+            background-color: #4CAF50;
             color: white;
             border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 4px;
             cursor: pointer;
-            transition: background 0.3s;
         }
-        
-        .btn:hover {
-            background: #3b5aa6;
+        button:hover {
+            background-color: #45a049;
         }
-        
-        .switch-form {
+        .toggle-form {
             text-align: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
+            margin-top: 15px;
         }
-        
-        .switch-form p {
-            color: #666;
-        }
-        
-        .switch-form a {
-            color: #4a6fc7;
+        .toggle-form a {
+            color: #0066cc;
             text-decoration: none;
-            font-weight: 600;
             cursor: pointer;
         }
-        
-        .switch-form a:hover {
-            text-decoration: underline;
-        }
-        
         .message {
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 20px;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
             text-align: center;
-            display: none;
         }
-        
-        .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
         .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background-color: #ffebee;
+            color: #c62828;
         }
-        
-        .form-title {
-            text-align: center;
-            margin-bottom: 25px;
-            color: #333;
-            font-size: 22px;
-        }
-        
-        .rules {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .rules h3 {
-            margin-bottom: 8px;
-            color: #444;
-        }
-        
-        .rules ul {
-            padding-left: 20px;
-        }
-        
-        .rules li {
-            margin-bottom: 5px;
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>User Authentication System</h1>
-            <p>Register or login to access your account</p>
+        <h1>MrM Arcade System</h1>
+        
+        <!-- Login Form -->
+        <div id="login-form">
+            <h2>Login</h2>
+            <div id="login-message" class="message" style="display: none;"></div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="login-username">Username:</label>
+                    <input type="text" id="login-username" name="username" required pattern="[A-Z0-9]+" title="Only capital letters and numbers are allowed">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password:</label>
+                    <input type="password" id="login-password" name="password" required pattern="[A-Z0-9]+" title="Only capital letters and numbers are allowed">
+                </div>
+                <button type="submit">Login</button>
+            </form>
+            <div class="toggle-form">
+                Don't have an account? <a id="show-register">Register</a>
+            </div>
         </div>
         
-        <div class="form-container">
-            <!-- Login Form -->
-            <div id="loginForm">
-                <h2 class="form-title">Login</h2>
-                <div class="input-group">
-                    <label for="loginUsername">Username</label>
-                    <input type="text" id="loginUsername" placeholder="Enter your username">
-                    <div class="error-text" id="loginUsernameError">Please enter a valid username (only capital letters and numbers)</div>
+        <!-- Registration Form -->
+        <div id="register-form" style="display: none;">
+            <h2>Register</h2>
+            <div id="register-message" class="message" style="display: none;"></div>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="register-username">Username:</label>
+                    <input type="text" id="register-username" name="username" required pattern="[A-Z0-9]+" title="Only capital letters and numbers are allowed">
                 </div>
-                <div class="input-group">
-                    <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" placeholder="Enter your password">
-                    <div class="error-text" id="loginPasswordError">Please enter a valid password (only capital letters and numbers)</div>
+                <div class="form-group">
+                    <label for="register-password">Password:</label>
+                    <input type="password" id="register-password" name="password" required pattern="[A-Z0-9]+" title="Only capital letters and numbers are allowed">
                 </div>
-                <button class="btn" onclick="login()">Login</button>
-                
-                <div class="switch-form">
-                    <p>Don't have an account? <a onclick="showRegisterForm()">Register here</a></p>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password:</label>
+                    <input type="password" id="confirm-password" name="confirm-password" required pattern="[A-Z0-9]+" title="Only capital letters and numbers are allowed">
                 </div>
-                
-                <div class="message" id="loginMessage"></div>
-            </div>
-
-            <!-- Register Form -->
-            <div id="registerForm" style="display: none;">
-                <h2 class="form-title">Register</h2>
-                <div class="input-group">
-                    <label for="regUsername">Username</label>
-                    <input type="text" id="regUsername" placeholder="Create a username">
-                    <div class="error-text" id="regUsernameError">Please enter a valid username (only capital letters and numbers)</div>
-                </div>
-                <div class="input-group">
-                    <label for="regPassword">Password</label>
-                    <input type="password" id="regPassword" placeholder="Create a password">
-                    <div class="error-text" id="regPasswordError">Please enter a valid password (only capital letters and numbers)</div>
-                </div>
-                <button class="btn" onclick="register()">Register</button>
-                
-                <div class="switch-form">
-                    <p>Already have an account? <a onclick="showLoginForm()">Login here</a></p>
-                </div>
-                
-                <div class="message" id="registerMessage"></div>
-            </div>
-            
-            <div class="rules">
-                <h3>Username & Password Rules:</h3>
-                <ul>
-                    <li>Only capital letters (A-Z) and numbers (0-9) are allowed</li>
-                    <li>No special characters or lowercase letters</li>
-                    <li>Must be at least 3 characters long</li>
-                </ul>
+                <button type="submit">Register</button>
+            </form>
+            <div class="toggle-form">
+                Already have an account? <a id="show-login">Login</a>
             </div>
         </div>
     </div>
 
     <script>
-        // Show/hide forms
-        function showRegisterForm() {
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('registerForm').style.display = 'block';
-            document.getElementById('registerMessage').style.display = 'none';
-            clearInputs();
-        }
-
-        function showLoginForm() {
-            document.getElementById('registerForm').style.display = 'none';
-            document.getElementById('loginForm').style.display = 'block';
-            document.getElementById('loginMessage').style.display = 'none';
-            clearInputs();
-        }
-        
-        function clearInputs() {
-            const inputs = document.querySelectorAll('input');
-            inputs.forEach(input => {
-                input.value = '';
-                input.classList.remove('invalid');
-            });
-            
-            const errors = document.querySelectorAll('.error-text');
-            errors.forEach(error => error.style.display = 'none');
-        }
-
-        // Validate input (only capital letters and numbers)
-        function validateInput(input) {
-            return /^[A-Z0-9]{3,}$/.test(input);
-        }
-        
-        // Validate input with UI feedback
-        function validateInputWithFeedback(inputElement, errorElement) {
-            const value = inputElement.value;
-            const isValid = validateInput(value);
-            
-            if (!isValid && value !== '') {
-                inputElement.classList.add('invalid');
-                errorElement.style.display = 'block';
-            } else {
-                inputElement.classList.remove('invalid');
-                errorElement.style.display = 'none';
-            }
-            
-            return isValid;
-        }
-        
-        // Add input validation on keyup
-        document.getElementById('loginUsername').addEventListener('input', function() {
-            validateInputWithFeedback(this, document.getElementById('loginUsernameError'));
+        // Toggle between login and register forms
+        document.getElementById('show-register').addEventListener('click', function() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
         });
         
-        document.getElementById('loginPassword').addEventListener('input', function() {
-            validateInputWithFeedback(this, document.getElementById('loginPasswordError'));
-        });
-        
-        document.getElementById('regUsername').addEventListener('input', function() {
-            validateInputWithFeedback(this, document.getElementById('regUsernameError'));
-        });
-        
-        document.getElementById('regPassword').addEventListener('input', function() {
-            validateInputWithFeedback(this, document.getElementById('regPasswordError'));
+        document.getElementById('show-login').addEventListener('click', function() {
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
         });
 
-        // Register function
-        function register() {
-            const username = document.getElementById('regUsername').value;
-            const password = document.getElementById('regPassword').value;
-            const messageElement = document.getElementById('registerMessage');
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
             
-            // Validate inputs
-            const isUsernameValid = validateInputWithFeedback(
-                document.getElementById('regUsername'), 
-                document.getElementById('regUsernameError')
-            );
+            const username = document.getElementById('login-username').value.toUpperCase();
+            const password = document.getElementById('login-password').value.toUpperCase();
+            const messageDiv = document.getElementById('login-message');
             
-            const isPasswordValid = validateInputWithFeedback(
-                document.getElementById('regPassword'), 
-                document.getElementById('regPasswordError')
-            );
-            
-            if (!isUsernameValid || !isPasswordValid) {
-                if (!isUsernameValid) {
-                    document.getElementById('regUsernameError').textContent = 'Username must contain only capital letters and numbers (min 3 characters)';
-                    document.getElementById('regUsernameError').style.display = 'block';
-                }
-                if (!isPasswordValid) {
-                    document.getElementById('regPasswordError').textContent = 'Password must contain only capital letters and numbers (min 3 characters)';
-                    document.getElementById('regPasswordError').style.display = 'block';
-                }
+            // Validate input (only capital letters and numbers)
+            const validChars = /^[A-Z0-9]+$/;
+            if (!validChars.test(username) || !validChars.test(password)) {
+                showMessage(messageDiv, 'error', 'Username and password can only contain capital letters and numbers.');
                 return;
             }
             
-            // Create form data
-            const formData = new FormData();
-            formData.append('username', username);
-            formData.append('password', password);
-            formData.append('action', 'register');
+            // Send login request to server
+            loginUser(username, password);
+        });
+
+        // Handle register form submission
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
             
-            // Show loading state
-            messageElement.textContent = 'Creating account...';
-            messageElement.className = 'message';
-            messageElement.style.display = 'block';
+            const username = document.getElementById('register-username').value.toUpperCase();
+            const password = document.getElementById('register-password').value.toUpperCase();
+            const confirmPassword = document.getElementById('confirm-password').value.toUpperCase();
+            const messageDiv = document.getElementById('register-message');
             
-            // Send request to PHP backend
-            fetch('auth.php', {
+            // Validate input (only capital letters and numbers)
+            const validChars = /^[A-Z0-9]+$/;
+            if (!validChars.test(username) || !validChars.test(password)) {
+                showMessage(messageDiv, 'error', 'Username and password can only contain capital letters and numbers.');
+                return;
+            }
+            
+            // Check if passwords match
+            if (password !== confirmPassword) {
+                showMessage(messageDiv, 'error', 'Passwords do not match.');
+                return;
+            }
+            
+            // Send registration request to server
+            registerUser(username, password);
+        });
+
+        // Function to display messages
+        function showMessage(element, type, message) {
+            element.textContent = message;
+            element.className = 'message ' + type;
+            element.style.display = 'block';
+            
+            // Auto-hide message after 5 seconds
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+
+        // Function to login user
+        function loginUser(username, password) {
+            const messageDiv = document.getElementById('login-message');
+            
+            // Create a PHP proxy request since we can't connect directly to MySQL from JavaScript
+            fetch('https://your-php-proxy-url.com/login.php', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'login',
+                    username: username,
+                    password: password
+                })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    messageElement.textContent = 'Registration successful! You can now login.';
-                    messageElement.className = 'message success';
-                    // Clear form
-                    document.getElementById('regUsername').value = '';
-                    document.getElementById('regPassword').value = '';
-                    // Show login form after a delay
-                    setTimeout(showLoginForm, 2000);
-                } else {
-                    messageElement.textContent = data.message;
-                    messageElement.className = 'message error';
-                }
-            })
-            .catch(error => {
-                messageElement.textContent = 'An error occurred. Please try again.';
-                messageElement.className = 'message error';
-                console.error('Error:', error);
-            });
-        }
-
-        // Login function
-        function login() {
-            const username = document.getElementById('loginUsername').value;
-            const password = document.getElementById('loginPassword').value;
-            const messageElement = document.getElementById('loginMessage');
-            
-            // Validate inputs
-            const isUsernameValid = validateInputWithFeedback(
-                document.getElementById('loginUsername'), 
-                document.getElementById('loginUsernameError')
-            );
-            
-            const isPasswordValid = validateInputWithFeedback(
-                document.getElementById('loginPassword'), 
-                document.getElementById('loginPasswordError')
-            );
-            
-            if (!isUsernameValid || !isPasswordValid) {
-                if (!isUsernameValid) {
-                    document.getElementById('loginUsernameError').textContent = 'Username must contain only capital letters and numbers (min 3 characters)';
-                    document.getElementById('loginUsernameError').style.display = 'block';
-                }
-                if (!isPasswordValid) {
-                    document.getElementById('loginPasswordError').textContent = 'Password must contain only capital letters and numbers (min 3 characters)';
-                    document.getElementById('loginPasswordError').style.display = 'block';
-                }
-                return;
-            }
-            
-            // Create form data
-            const formData = new FormData();
-            formData.append('username', username);
-            formData.append('password', password);
-            formData.append('action', 'login');
-            
-            // Show loading state
-            messageElement.textContent = 'Logging in...';
-            messageElement.className = 'message';
-            messageElement.style.display = 'block';
-            
-            // Send request to PHP backend
-            fetch('auth.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    messageElement.textContent = 'Login successful! Redirecting...';
-                    messageElement.className = 'message success';
-                    // Redirect to user page after successful login
+                    showMessage(messageDiv, 'success', 'Login successful! Redirecting...');
+                    // Store user data in localStorage or sessionStorage
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    // Redirect to user page
                     setTimeout(() => {
                         window.location.href = 'https://maxcreed36-sketch.github.io/MrMArcadeSystem/UserPage.html';
                     }, 1000);
                 } else {
-                    messageElement.textContent = data.message;
-                    messageElement.className = 'message errror';
+                    showMessage(messageDiv, 'error', data.message || 'Login failed.');
                 }
             })
             .catch(error => {
-                messageElement.textContent = 'An error occurred. Please try again.';
-                messageElement.className = 'message error';
+                showMessage(messageDiv, 'error', 'An error occurred. Please try again later.');
+                console.error('Error:', error);
+            });
+        }
+
+        // Function to register user
+        function registerUser(username, password) {
+            const messageDiv = document.getElementById('register-message');
+            
+            // Create a PHP proxy request
+            fetch('https://your-php-proxy-url.com/register.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'register',
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage(messageDiv, 'success', 'Registration successful! You can now login.');
+                    // Switch to login form
+                    document.getElementById('register-form').style.display = 'none';
+                    document.getElementById('login-form').style.display = 'block';
+                    // Pre-fill the login form
+                    document.getElementById('login-username').value = username;
+                } else {
+                    showMessage(messageDiv, 'error', data.message || 'Registration failed.');
+                }
+            })
+            .catch(error => {
+                showMessage(messageDiv, 'error', 'An error occurred. Please try again later.');
                 console.error('Error:', error);
             });
         }
