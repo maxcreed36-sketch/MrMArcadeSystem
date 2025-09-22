@@ -6,7 +6,6 @@
     <title>Score Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
@@ -184,9 +183,12 @@
 
         // Generate QR code
         function generateQRCode() {
-            // Only include score and date in the QR code
+            // Include username, score and date in the QR code
             const formattedDate = formatDate(new Date());
-            const qrData = `${currentScore}/${formattedDate}`;
+            const qrData = `${currentUsername}/${currentScore}/${formattedDate}`;
+            
+            // Clear previous QR code
+            qrCodeDiv.innerHTML = '';
             
             const qr = qrcode(0, 'L');
             qr.addData(qrData);
@@ -211,7 +213,7 @@
                 const score = parts[1].trim();
                 const date = parts.slice(2).join('/').trim();
                 
-                // Validate score format (+ or - followed by number)
+                // Validate score format (number with optional + or -)
                 if (!/^(\+|-)?\d+$/.test(score)) {
                     return null;
                 }
@@ -308,7 +310,7 @@
         }
 
         // Clear all user data
-        function clearUser Data() {
+        function clearUserData() {
             localStorage.removeItem('score');
             localStorage.removeItem('scoreHistory');
             currentScore = 0;
@@ -348,7 +350,7 @@
                 if (newUsername.length > 0 && validateUsername(newUsername)) {
                     if (usernameChangePending && newUsername !== currentUsername) {
                         // Clear all data if username is being changed
-                        clearUser Data();
+                        clearUserData();
                     }
                     
                     currentUsername = newUsername;
@@ -397,17 +399,35 @@
             // Initialize QR scanner
             html5QrCode = new Html5Qrcode("qr-reader");
             const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-                saveScoreToHistory(decodedText);
-                html5QrCode.stop().then(() => {
-                    qrScanner.classList.add('hidden');
-                    mainMenu.classList.remove('hidden');
-                }).catch(err => {
-                    console.error("Error stopping scanner", err);
-                });
+                if (saveScoreToHistory(decodedText)) {
+                    html5QrCode.stop().then(() => {
+                        qrScanner.classList.add('hidden');
+                        mainMenu.classList.remove('hidden');
+                    }).catch(err => {
+                        console.error("Error stopping scanner", err);
+                        qrScanner.classList.add('hidden');
+                        mainMenu.classList.remove('hidden');
+                    });
+                }
+            };
+            
+            const qrCodeErrorCallback = (error) => {
+                // Don't show error messages for every failed scan attempt
+                console.log("QR Code scan error", error);
             };
             
             const config = { fps: 10, qrbox: 250 };
-            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                qrCodeSuccessCallback,
+                qrCodeErrorCallback
+            ).catch(err => {
+                console.error("Unable to start QR scanner", err);
+                alert("Unable to start camera. Please check permissions.");
+                qrScanner.classList.add('hidden');
+                mainMenu.classList.remove('hidden');
+            });
         });
 
         viewHistoryBtn.addEventListener('click', function() {
@@ -433,6 +453,8 @@
                     mainMenu.classList.remove('hidden');
                 }).catch(err => {
                     console.error("Error stopping scanner", err);
+                    qrScanner.classList.add('hidden');
+                    mainMenu.classList.remove('hidden');
                 });
             } else {
                 qrScanner.classList.add('hidden');
