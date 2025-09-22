@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Score QR Generator</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
         * {
             margin: 0;
@@ -54,6 +55,20 @@
             margin-bottom: 5px;
             color: #333;
             font-weight: 500;
+        }
+        
+        .input-with-button {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .input-with-button input {
+            flex: 1;
+        }
+        
+        .input-with-button button {
+            width: auto;
+            padding: 12px 15px;
         }
         
         input {
@@ -124,6 +139,63 @@
             font-size: 14px;
             color: #333;
         }
+        
+        /* Scanner modal styles */
+        .scanner-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .scanner-content {
+            background-color: white;
+            border-radius: 15px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        #scanner-video {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        #scanner-canvas {
+            display: none;
+        }
+        
+        .scanner-instructions {
+            margin-bottom: 15px;
+            color: #666;
+        }
+        
+        .scanner-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .scanner-buttons button {
+            flex: 1;
+        }
+        
+        .close-scanner {
+            background: #f44336;
+        }
+        
+        .scanner-status {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -139,7 +211,10 @@
         
         <div class="input-group">
             <label for="usernameInput">Username (optional, required for positive scores):</label>
-            <input type="text" id="usernameInput" placeholder="Enter username (e.g., user123)...">
+            <div class="input-with-button">
+                <input type="text" id="usernameInput" placeholder="Enter username (e.g., user123)...">
+                <button id="scanButton" type="button">Scan QR</button>
+            </div>
         </div>
         
         <div class="input-group">
@@ -157,7 +232,131 @@
         <p class="footer">Scan the QR code to process the score entry</p>
     </div>
 
+    <!-- QR Scanner Modal -->
+    <div class="scanner-modal" id="scannerModal">
+        <div class="scanner-content">
+            <h2>Scan QR Code</h2>
+            <p class="scanner-instructions">Position the QR code in front of your camera</p>
+            <video id="scanner-video" autoplay playsinline></video>
+            <canvas id="scanner-canvas"></canvas>
+            <div class="scanner-buttons">
+                <button id="closeScanner" class="close-scanner">Close</button>
+                <button id="switchCamera">Switch Camera</button>
+            </div>
+            <div class="scanner-status" id="scannerStatus">Initializing camera...</div>
+        </div>
+    </div>
+
     <script>
+        // QR Scanner variables
+        let scannerStream = null;
+        let usingFrontCamera = false;
+        let scanInterval = null;
+        
+        // DOM elements
+        const scanButton = document.getElementById('scanButton');
+        const scannerModal = document.getElementById('scannerModal');
+        const closeScanner = document.getElementById('closeScanner');
+        const switchCamera = document.getElementById('switchCamera');
+        const scannerVideo = document.getElementById('scanner-video');
+        const scannerCanvas = document.getElementById('scanner-canvas');
+        const scannerStatus = document.getElementById('scannerStatus');
+        const usernameInput = document.getElementById('usernameInput');
+        
+        // Open scanner modal
+        scanButton.addEventListener('click', openScanner);
+        
+        // Close scanner modal
+        closeScanner.addEventListener('click', closeScannerModal);
+        
+        // Switch camera
+        switchCamera.addEventListener('click', switchCameraView);
+        
+        function openScanner() {
+            scannerModal.style.display = 'flex';
+            startScanner();
+        }
+        
+        function closeScannerModal() {
+            scannerModal.style.display = 'none';
+            stopScanner();
+        }
+        
+        async function startScanner() {
+            try {
+                const constraints = {
+                    video: { 
+                        facingMode: usingFrontCamera ? 'user' : 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+                
+                scannerStream = await navigator.mediaDevices.getUserMedia(constraints);
+                scannerVideo.srcObject = scannerStream;
+                scannerStatus.textContent = 'Camera ready. Point at a QR code.';
+                
+                // Start scanning for QR codes
+                scanInterval = setInterval(scanQRCode, 500);
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                scannerStatus.textContent = 'Error accessing camera. Please check permissions.';
+            }
+        }
+        
+        function stopScanner() {
+            if (scanInterval) {
+                clearInterval(scanInterval);
+                scanInterval = null;
+            }
+            
+            if (scannerStream) {
+                scannerStream.getTracks().forEach(track => track.stop());
+                scannerStream = null;
+            }
+        }
+        
+        function scanQRCode() {
+            if (scannerVideo.readyState === scannerVideo.HAVE_ENOUGH_DATA) {
+                scannerCanvas.width = scannerVideo.videoWidth;
+                scannerCanvas.height = scannerVideo.videoHeight;
+                
+                const context = scannerCanvas.getContext('2d');
+                context.drawImage(scannerVideo, 0, 0, scannerCanvas.width, scannerCanvas.height);
+                
+                const imageData = context.getImageData(0, 0, scannerCanvas.width, scannerCanvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    // QR code detected
+                    scannerStatus.textContent = 'QR code detected!';
+                    
+                    // Extract username from QR code data
+                    const qrData = code.data;
+                    const parts = qrData.split('/');
+                    
+                    // Check if it's a positive score QR code (has username)
+                    if (parts.length >= 3 && !parts[1].startsWith('-')) {
+                        const username = parts[1];
+                        usernameInput.value = username;
+                        scannerStatus.textContent = `Username "${username}" extracted from QR code.`;
+                        
+                        // Close scanner after a brief delay
+                        setTimeout(closeScannerModal, 1000);
+                    } else {
+                        scannerStatus.textContent = 'This QR code does not contain a username.';
+                    }
+                }
+            }
+        }
+        
+        async function switchCameraView() {
+            usingFrontCamera = !usingFrontCamera;
+            stopScanner();
+            await startScanner();
+        }
+        
+        // Original QR generation function
         function generateQR() {
             const usernameInput = document.getElementById('usernameInput').value.trim();
             const scoreInput = parseFloat(document.getElementById('scoreInput').value);
