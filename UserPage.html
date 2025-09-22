@@ -179,9 +179,9 @@
 
         // Generate QR code
         function generateQRCode() {
+            // Only include score and date in the QR code
             const formattedDate = formatDate(new Date());
-            // Clean format without extra symbols
-            const qrData = `${currentUsername}/${currentScore}/${formattedDate}`;
+            const qrData = `${currentScore}/${formattedDate}`;
             
             const qr = qrcode(0, 'L');
             qr.addData(qrData);
@@ -206,34 +206,30 @@
             const exists = history.some(item => item.raw === scoreData);
             if (!exists) {
                 const parts = scoreData.split('/');
-                if (parts.length === 3) {
-                    // Clean up each part
-                    const username = parts[0].trim();
-                    const score = parts[1].trim();
-                    const date = parts[2].trim();
+                if (parts.length >= 2) {
+                    // Clean up each part - first part is score, rest is date
+                    const score = parts[0].trim();
+                    // Join the remaining parts as date (in case date contains slashes)
+                    const date = parts.slice(1).join('/').trim();
                     
-                    // Only process if it's for the current user
-                    if (username === currentUsername) {
-                        history.unshift({
-                            username: username,
-                            score: score,
-                            date: date,
-                            raw: scoreData
-                        });
-                        
-                        // Update current score
-                        const scoreChange = parseInt(score);
-                        if (!isNaN(scoreChange)) {
-                            currentScore += scoreChange;
-                            currentScoreDisplay.textContent = currentScore;
-                            localStorage.setItem('score', currentScore.toString());
-                        }
-                        
-                        localStorage.setItem('scoreHistory', JSON.stringify(history));
-                        return true;
-                    } else {
-                        alert(`This QR code is for ${username}, not ${currentUsername}`);
+                    // Process the score for the current user
+                    history.unshift({
+                        username: currentUsername,
+                        score: score,
+                        date: date,
+                        raw: scoreData
+                    });
+                    
+                    // Update current score
+                    const scoreChange = parseInt(score);
+                    if (!isNaN(scoreChange)) {
+                        currentScore += scoreChange;
+                        currentScoreDisplay.textContent = currentScore;
+                        localStorage.setItem('score', currentScore.toString());
                     }
+                    
+                    localStorage.setItem('scoreHistory', JSON.stringify(history));
+                    return true;
                 }
             } else {
                 alert('This score has already been recorded.');

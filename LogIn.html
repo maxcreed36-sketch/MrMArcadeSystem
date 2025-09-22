@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Number QR Generator</title>
+    <title>Score QR Generator</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <style>
         * {
@@ -45,12 +45,20 @@
         }
         
         .input-group {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
         }
         
         input {
             width: 100%;
-            padding: 15px;
+            padding: 12px;
             border: 2px solid #ddd;
             border-radius: 8px;
             font-size: 16px;
@@ -72,6 +80,7 @@
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
             font-weight: 600;
+            width: 100%;
         }
         
         button:hover {
@@ -104,44 +113,93 @@
             color: #888;
             font-size: 14px;
         }
+
+        .note {
+            background-color: #e7f3ff;
+            border-left: 4px solid #6a11cb;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            text-align: left;
+            font-size: 14px;
+            color: #333;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Number QR Generator</h1>
-        <p class="description">Enter any number below to generate a QR code that will display as "-Number" followed by your input.</p>
+        <h1>Score QR Generator</h1>
+        <p class="description">Generate a QR code for scores. For negative scores, it includes only the minus score and current date/time (no username). For positive scores, it includes username (if provided), plus score, and current date/time.</p>
+        
+        <div class="note">
+            <strong>Format:</strong> /Username?/+/-Score?/Date Time<br>
+            - Negative score example: /-123/2023-10-05 14:30:00<br>
+            - Positive score example: /user123/+456/2023-10-05 14:30:00
+        </div>
         
         <div class="input-group">
-            <input type="number" id="numberInput" placeholder="Enter a number..." min="0">
+            <label for="usernameInput">Username (optional, required for positive scores):</label>
+            <input type="text" id="usernameInput" placeholder="Enter username (e.g., user123)...">
+        </div>
+        
+        <div class="input-group">
+            <label for="scoreInput">Score (positive or negative number):</label>
+            <input type="number" id="scoreInput" placeholder="Enter score (e.g., 123 or -123)...">
         </div>
         
         <button onclick="generateQR()">Generate QR Code</button>
         
         <div class="qr-container" id="qrContainer">
             <canvas id="qrCode"></canvas>
+            <p style="margin-top: 10px; font-size: 12px; color: #666;">QR Code Text: <span id="qrTextDisplay"></span></p>
         </div>
         
-        <p class="footer">Scan the QR code to see your number with the "-Number" prefix</p>
+        <p class="footer">Scan the QR code to process the score entry</p>
     </div>
 
     <script>
         function generateQR() {
-            const numberInput = document.getElementById('numberInput').value;
+            const usernameInput = document.getElementById('usernameInput').value.trim();
+            const scoreInput = parseFloat(document.getElementById('scoreInput').value);
             
-            if (!numberInput) {
-                alert("Please enter a number first!");
+            if (isNaN(scoreInput)) {
+                alert("Please enter a valid score (positive or negative number)!");
                 return;
             }
             
-            const qrText = "-Number" + numberInput;
+            if (scoreInput > 0 && !usernameInput) {
+                alert("For positive scores, please enter a username!");
+                return;
+            }
+            
+            // Generate current date and time in YYYY-MM-DD HH:MM:SS format
+            const now = new Date();
+            const dateTime = now.toISOString().slice(0, 19).replace('T', ' ');
+            
+            let qrText;
+            const absScore = Math.abs(scoreInput);
+            const sign = scoreInput > 0 ? '+' : '-';
+            
+            if (scoreInput < 0) {
+                // Negative: only -Score/Date Time (no username)
+                qrText = `/-${absScore}/${dateTime}`;
+            } else {
+                // Positive: /Username/+Score/Date Time
+                qrText = `/${usernameInput}/${sign}${absScore}/${dateTime}`;
+            }
+            
             const canvas = document.getElementById('qrCode');
             const qrContainer = document.getElementById('qrContainer');
+            const qrTextDisplay = document.getElementById('qrTextDisplay');
             
             // Clear previous QR code
             canvas.width = 250;
             canvas.height = 250;
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Display the text for reference
+            qrTextDisplay.textContent = qrText;
             
             // Generate new QR code
             QRCode.toCanvas(canvas, qrText, {
@@ -161,8 +219,14 @@
             });
         }
         
-        // Allow generating QR code by pressing Enter
-        document.getElementById('numberInput').addEventListener('keypress', function(e) {
+        // Allow generating QR code by pressing Enter on inputs
+        document.getElementById('usernameInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateQR();
+            }
+        });
+        
+        document.getElementById('scoreInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 generateQR();
             }
