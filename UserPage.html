@@ -183,9 +183,9 @@
 
         // Generate QR code
         function generateQRCode() {
-            // Include username, score and date in the QR code
+            // Format: /Username?/+/-Score?/Date Time
             const formattedDate = formatDate(new Date());
-            const qrData = `${currentUsername}/${currentScore}/${formattedDate}`;
+            const qrData = `/${currentUsername}/${currentScore >= 0 ? '+' : ''}${currentScore}/${formattedDate}`;
             
             // Clear previous QR code
             qrCodeDiv.innerHTML = '';
@@ -204,33 +204,49 @@
 
         // Parse QR code data
         function parseQRData(qrData) {
-            // Clean up the scanned data
+            // Clean up the scanned data - remove any leading/trailing slashes and question marks
             qrData = qrData.replace(/\?/g, '').replace(/^\/+|\/+$/g, '');
             
             const parts = qrData.split('/');
-            if (parts.length >= 3) {
+            
+            // Check if it's a negative score format (2 parts: score/date)
+            if (parts.length === 2) {
+                const score = parts[0].trim();
+                const date = parts[1].trim();
+                
+                // Validate score format (should be negative)
+                if (!/^-\d+$/.test(score)) {
+                    return null;
+                }
+                
+                return {
+                    username: null, // No username for negative scores
+                    score: score,
+                    date: date,
+                    raw: qrData,
+                    isNegative: true
+                };
+            }
+            // Check if it's a positive score format (3 parts: username/score/date)
+            else if (parts.length >= 3) {
                 const username = parts[0].trim().toUpperCase();
                 const score = parts[1].trim();
                 const date = parts.slice(2).join('/').trim();
                 
-                // Validate score format (number with optional + or -)
-                if (!/^(\+|-)?\d+$/.test(score)) {
+                // Validate score format (should be positive with + or just number)
+                if (!/^(\+)?\d+$/.test(score)) {
                     return null;
                 }
                 
                 return {
                     username: username,
-                    score: score,
+                    score: score.startsWith('+') ? score : '+' + score,
                     date: date,
-                    raw: qrData
+                    raw: qrData,
+                    isNegative: false
                 };
             }
             return null;
-        }
-
-        // Check if score is negative
-        function isNegativeScore(score) {
-            return score.startsWith('-');
         }
 
         // Save score to history and update current score
@@ -238,6 +254,13 @@
             const parsedData = parseQRData(qrData);
             if (!parsedData) {
                 alert('Invalid QR code format');
+                return false;
+            }
+            
+            // For negative scores, no username check needed
+            // For positive scores, check if scanned username matches current username
+            if (!parsedData.isNegative && parsedData.username !== currentUsername) {
+                alert(`Scanned username (${parsedData.username}) does not match current username (${currentUsername}).`);
                 return false;
             }
             
@@ -250,53 +273,25 @@
                 return false;
             }
             
-            // For negative scores, skip username check
-            if (isNegativeScore(parsedData.score)) {
-                // Negative score - apply to current user regardless of scanned username
-                const scoreValue = parseInt(parsedData.score, 10);
-                currentScore += scoreValue;
-                updateScoreDisplay();
-                
-                // Add to history with current username (not the scanned one)
-                history.unshift({
-                    username: currentUsername,
-                    score: parsedData.score,
-                    date: parsedData.date,
-                    scannedDate: formatDate(new Date()),
-                    raw: parsedData.raw,
-                    originalUsername: parsedData.username, // Store original for reference
-                    note: "Negative score applied"
-                });
-                
-                localStorage.setItem('scoreHistory', JSON.stringify(history));
-                
-                alert(`Negative score recorded successfully!\nScanned score: ${parsedData.score}\nOriginal username: ${parsedData.username}\nApplied to: ${currentUsername}\nNew current score: ${currentScore}`);
-                
-            } else {
-                // Positive score - check if scanned username matches current username
-                if (parsedData.username !== currentUsername) {
-                    alert(`Scanned username (${parsedData.username}) does not match current username (${currentUsername}). Only negative scores can be applied to any user.`);
-                    return false;
-                }
-                
-                // Update current score by adding scanned score (convert to integer)
-                const scoreValue = parseInt(parsedData.score, 10);
-                currentScore += scoreValue;
-                updateScoreDisplay();
-                
-                // Add to history
-                history.unshift({
-                    username: currentUsername,
-                    score: parsedData.score,
-                    date: parsedData.date,
-                    scannedDate: formatDate(new Date()),
-                    raw: parsedData.raw
-                });
-                
-                localStorage.setItem('scoreHistory', JSON.stringify(history));
-                
-                alert(`Score recorded successfully!\nScanned score: ${parsedData.score}\nDate: ${parsedData.date}\nNew current score: ${currentScore}`);
-            }
+            // Update current score by adding scanned score (convert to integer)
+            const scoreValue = parseInt(parsedData.score, 10);
+            currentScore += scoreValue;
+            updateScoreDisplay();
+            
+            // Add to history
+            history.unshift({
+                username: parsedData.isNegative ? 'SYSTEM' : parsedData.username,
+                score: parsedData.score,
+                date: parsedData.date,
+                scannedDate: formatDate(new Date()),
+                raw: parsedData.raw,
+                isNegative: parsedData.isNegative
+            });
+            
+            localStorage.setItem('scoreHistory', JSON.stringify(history));
+            
+            const scoreType = parsedData.isNegative ? 'Negative score' : 'Positive score';
+            alert(`${scoreType} recorded successfully!\nScore: ${parsedData.score}\nDate: ${parsedData.date}\nNew current score: ${currentScore}`);
             
             return true;
         }
@@ -311,8 +306,10 @@
                 return;
             }
             
-            // Filter history for current user only
-            const userHistory = history.filter(item => item.username === currentUsername);
+            // For negative scores, show all. For positive scores, filter by current user
+            const userHistory = history.filter(item => 
+                item.isNegative || item.username === currentUsername
+            );
             
             if (userHistory.length === 0) {
                 historyList.innerHTML = '<p class="text-gray-500 text-center py-4">No history for current user</p>';
@@ -326,19 +323,17 @@
                 // Display the scanned score value
                 const scoreValue = item.score;
                 const scoreClass = scoreValue.startsWith('-') ? 'score-negative' : 'score-positive';
-                
-                let additionalInfo = '';
-                if (item.originalUsername && item.originalUsername !== currentUsername) {
-                    additionalInfo = `<div class="text-xs text-orange-500 mt-1">Originally for: ${item.originalUsername}</div>`;
-                }
+                const usernameDisplay = item.isNegative ? 'SYSTEM' : item.username;
                 
                 historyItem.innerHTML = `
                     <div class="flex justify-between items-center mb-1">
                         <span class="font-medium ${scoreClass}">${scoreValue}</span>
                         <span class="text-sm text-gray-500">${item.date}</span>
                     </div>
-                    <div class="text-xs text-gray-400">Scanned on: ${item.scannedDate || 'Unknown'}</div>
-                    ${additionalInfo}
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>User: ${usernameDisplay}</span>
+                        <span>Scanned: ${item.scannedDate || 'Unknown'}</span>
+                    </div>
                 `;
                 historyList.appendChild(historyItem);
             });
@@ -346,8 +341,14 @@
 
         // Clear all user data
         function clearUserData() {
+            // Only clear history for this user, keep system (negative) scores
+            const history = JSON.parse(localStorage.getItem('scoreHistory') || '[]');
+            const systemHistory = history.filter(item => item.isNegative);
+            
+            localStorage.setItem('scoreHistory', JSON.stringify(systemHistory));
             localStorage.removeItem('score');
-            localStorage.removeItem('scoreHistory');
+            localStorage.removeItem('username');
+            
             currentScore = 0;
             currentScoreDisplay.textContent = currentScore;
             currentUsername = '';
