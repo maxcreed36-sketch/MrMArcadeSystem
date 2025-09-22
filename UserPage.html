@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Score Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
@@ -62,7 +62,7 @@
                     <span id="current-username-display" class="username-display"></span>
                 </div>
                 <input type="text" id="username" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 capitalize-input" 
-                       placeholder="Enter username (letters & numbers)" maxlength="20" />
+                       placeholder="Enter username (letters & numbers)" maxlength="20">
                 <p class="text-xs text-gray-500 mt-1">Only alphanumeric characters allowed</p>
                 <div id="username-warning" class="warning-message text-sm">
                     Changing your username will delete all your current scores and history. Press Enter to confirm.
@@ -146,17 +146,22 @@
         // Initialize from localStorage
         function initializeFromStorage() {
             const savedUsername = localStorage.getItem('username');
+            const savedScore = localStorage.getItem('score');
+            
             if (savedUsername) {
                 usernameInput.value = savedUsername;
                 currentUsername = savedUsername;
                 currentUsernameDisplay.textContent = savedUsername;
-
-                // Recalculate current score from history for this user
-                const history = JSON.parse(localStorage.getItem('scoreHistory') || '[]')
-                    .filter(item => item.username === currentUsername);
-                currentScore = history.reduce((acc, item) => acc + item.score, 0);
+            }
+            
+            if (savedScore) {
+                currentScore = parseInt(savedScore);
                 currentScoreDisplay.textContent = currentScore;
-                localStorage.setItem('score', currentScore.toString());
+            } else {
+                // Initialize score to 0 if not set
+                currentScore = 0;
+                currentScoreDisplay.textContent = currentScore;
+                localStorage.setItem('score', '0');
             }
         }
 
@@ -195,88 +200,115 @@
             return /^[a-zA-Z0-9]+$/.test(username);
         }
 
-        // Save score to history
-        function saveScoreToHistory(scoreData) {
-            let history = JSON.parse(localStorage.getItem('scoreHistory') || '[]');
-
-            // Clean up the scanned data by removing unwanted characters
-            scoreData = scoreData.replace(/\?/g, '').replace(/^\/+|\/+$/g, '');
-
-            // Check if this exact record already exists for current user
-            const exists = history.some(item => item.raw === scoreData && item.username === currentUsername);
-            if (!exists) {
-                const parts = scoreData.split('/');
-                if (parts.length >= 2) {
-                    const scoreStr = parts[0].trim();
-                    const date = parts.slice(1).join('/').trim();
-
-                    // Parse score as integer (allow + or -)
-                    const scoreChange = parseInt(scoreStr, 10);
-                    if (isNaN(scoreChange)) {
-                        alert('Invalid score format in QR code.');
-                        return false;
-                    }
-
-                    // Add new record for current user
-                    history.unshift({
-                        username: currentUsername,
-                        score: scoreChange,
-                        date: date,
-                        raw: scoreData
-                    });
-
-                    // Update current score by recalculating from history for current user
-                    currentScore = history
-                        .filter(item => item.username === currentUsername)
-                        .reduce((acc, item) => acc + item.score, 0);
-
-                    currentScoreDisplay.textContent = currentScore;
-                    localStorage.setItem('score', currentScore.toString());
-                    localStorage.setItem('scoreHistory', JSON.stringify(history));
-                    return true;
-                }
-            } else {
-                alert('This score has already been recorded.');
+        // Parse QR code data
+        function parseQRData(qrData) {
+            // Clean up the scanned data
+            qrData = qrData.replace(/\?/g, '').replace(/^\/+|\/+$/g, '');
+            
+            const parts = qrData.split('/');
+            if (parts.length >= 2) {
+                const score = parts[0].trim();
+                const date = parts.slice(1).join('/').trim();
+                
+                return {
+                    score: score,
+                    date: date,
+                    raw: qrData
+                };
             }
-            return false;
+            return null;
+        }
+
+        // Save score to history
+        function saveScoreToHistory(qrData) {
+            const parsedData = parseQRData(qrData);
+            if (!parsedData) {
+                alert('Invalid QR code format');
+                return false;
+            }
+            
+            let history = JSON.parse(localStorage.getItem('scoreHistory') || '[]');
+            
+            // Check if this exact record already exists
+            const exists = history.some(item => item.raw === parsedData.raw);
+            if (exists) {
+                alert('This score has already been recorded.');
+                return false;
+            }
+            
+            // Add to history with the username of the person who scanned it (current user)
+            history.unshift({
+                username: currentUsername,
+                score: parsedData.score,
+                date: parsedData.date,
+                scannedDate: formatDate(new Date()),
+                raw: parsedData.raw
+            });
+            
+            // Update current score - this is where the fix is
+            // Instead of adding the scanned score to current score, we just record it in history
+            // The current score should only be modified through direct user actions, not scanning
+            
+            localStorage.setItem('scoreHistory', JSON.stringify(history));
+            
+            // Show success message with details
+            alert(`Score recorded successfully!\nScanned score: ${parsedData.score}\nDate: ${parsedData.date}`);
+            
+            return true;
         }
 
         // Load history
         function loadHistory() {
-            const history = JSON.parse(localStorage.getItem('scoreHistory') || '[]')
-                .filter(item => item.username === currentUsername);
+            const history = JSON.parse(localStorage.getItem('scoreHistory') || '[]');
             historyList.innerHTML = '';
-
+            
             if (history.length === 0) {
                 historyList.innerHTML = '<p class="text-gray-500 text-center py-4">No history yet</p>';
                 return;
             }
-
-            history.forEach(item => {
+            
+            // Filter history for current user only
+            const userHistory = history.filter(item => item.username === currentUsername);
+            
+            if (userHistory.length === 0) {
+                historyList.innerHTML = '<p class="text-gray-500 text-center py-4">No history for current user</p>';
+                return;
+            }
+            
+            userHistory.forEach(item => {
                 const historyItem = document.createElement('div');
                 historyItem.className = 'history-item';
-
+                
+                // Display the scanned score value
                 const scoreValue = item.score;
-                const scoreClass = scoreValue < 0 ? 'score-negative' : 'score-positive';
-
+                const scoreClass = scoreValue.startsWith('-') ? 'score-negative' : 'score-positive';
+                
                 historyItem.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <span class="font-medium ${scoreClass}">${scoreValue > 0 ? '+' : ''}${scoreValue}</span>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-medium ${scoreClass}">${scoreValue}</span>
                         <span class="text-sm text-gray-500">${item.date}</span>
                     </div>
+                    <div class="text-xs text-gray-400">Scanned on: ${item.scannedDate || 'Unknown'}</div>
                 `;
                 historyList.appendChild(historyItem);
             });
         }
 
         // Clear all user data
-        function clearUser Data() {
+        function clearUserData() {
             localStorage.removeItem('score');
             localStorage.removeItem('scoreHistory');
             currentScore = 0;
             currentScoreDisplay.textContent = currentScore;
             currentUsername = '';
             currentUsernameDisplay.textContent = '';
+            usernameInput.value = '';
+        }
+
+        // Update score display
+        function updateScoreDisplay() {
+            currentScoreDisplay.textContent = currentScore;
+            localStorage.setItem('score', currentScore.toString());
         }
 
         // Event listeners
@@ -303,7 +335,7 @@
                 if (newUsername.length > 0 && validateUsername(newUsername)) {
                     if (usernameChangePending && newUsername !== currentUsername) {
                         // Clear all data if username is being changed
-                        clearUser Data();
+                        clearUserData();
                     }
                     
                     currentUsername = newUsername;
@@ -352,9 +384,7 @@
             // Initialize QR scanner
             html5QrCode = new Html5Qrcode("qr-reader");
             const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-                if (saveScoreToHistory(decodedText)) {
-                    alert('Score recorded successfully!');
-                }
+                saveScoreToHistory(decodedText);
                 html5QrCode.stop().then(() => {
                     qrScanner.classList.add('hidden');
                     mainMenu.classList.remove('hidden');
